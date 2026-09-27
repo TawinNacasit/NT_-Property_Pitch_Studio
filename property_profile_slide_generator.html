@@ -1,0 +1,1848 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Property Pitch Studio - เครื่องมือสร้างสไลด์อสังหาฯ ระดับมืออาชีพ</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts: Prompt & Sarabun -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- html2canvas for instant image download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- PptxGenJS for PowerPoint generation -->
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+
+  <style>
+    body {
+      font-family: 'Prompt', sans-serif;
+      background-color: #090d16;
+      color: #334155;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .font-sarabun {
+      font-family: 'Sarabun', sans-serif;
+    }
+
+    /* Presentation Screen Scaling Canvas */
+    #slideViewport {
+      position: relative;
+      width: 100%;
+      max-width: 1140px;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+
+    .slide-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      aspect-ratio: 16 / 9;
+      background: #ffffff;
+      box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: auto;
+      box-sizing: border-box;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    /* Editable states */
+    [contenteditable="true"]:hover {
+      outline: 2px dashed #f59e0b;
+      cursor: text;
+    }
+    [contenteditable="true"]:focus {
+      outline: 2px solid #3b82f6;
+      background-color: rgba(239, 246, 255, 0.85);
+    }
+    .slide-wrapper.is-inline-editing #satelliteOverlayWrapper {
+      pointer-events: auto;
+    }
+
+    /* Satellite Dimension Tags */
+    .dim-tag {
+      background-color: #facc15;
+      color: #0f172a;
+      font-weight: 700;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 2px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      white-space: nowrap;
+      border: 1px solid rgba(0,0,0,0.15);
+    }
+
+    /* Responsive text fit classes */
+    .density-compact {
+      font-size: 9.5px !important;
+      line-height: 1.25 !important;
+    }
+    .density-ultracompact {
+      font-size: 8.5px !important;
+      line-height: 1.15 !important;
+    }
+
+    @media print {
+      body {
+        background: #ffffff !important;
+        padding: 0 !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      #slideViewport {
+        max-width: 100% !important;
+        width: 100% !important;
+      }
+      .slide-wrapper {
+        box-shadow: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden bg-slate-950 text-slate-100">
+
+  <header class="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-2.5 flex items-center justify-between z-30 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
+        <i class="fa-solid fa-layer-group text-sm"></i>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold text-white flex items-center gap-2">
+          Property Pitch Studio
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-400 border border-amber-400/20">Pro Edition</span>
+        </h1>
+        <p class="text-[11px] text-slate-400">ระบบสร้าง One-Pager อสังหาฯ จัด Layout อัจฉริยะ & ส่งออก PPTX</p>
+      </div>
+    </div>
+
+    <!-- Top Action Toolbar -->
+    <div class="flex items-center gap-2">
+      <!-- AI Assistant Button -->
+      <button onclick="openAiModal()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition">
+        <i class="fa-solid fa-wand-magic-sparkles text-amber-300"></i>
+        <span>AI ช่วยสร้าง & จัดหน้า</span>
+      </button>
+
+      <!-- Smart Fit & Auto Arrange Button -->
+      <button onclick="autoFitAndArrange()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs font-medium flex items-center gap-1.5 transition" title="AI ช่วยจัดขนาดฟอนต์และช่องว่างให้พอดีไม่ล้นสไลด์">
+        <i class="fa-solid fa-arrows-to-eye"></i>
+        <span>จัดพอดีสไลด์</span>
+      </button>
+
+      <!-- Toggle Inline Edit -->
+      <button id="inlineEditBtn" type="button" aria-pressed="false" onclick="toggleInlineEdit()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 flex items-center gap-1.5 transition">
+        <i class="fa-solid fa-pen-to-square text-amber-400"></i>
+        <span id="inlineEditText">คลิกพิมพ์บนสไลด์</span>
+      </button>
+
+      <div class="h-4 w-px bg-slate-800 mx-1"></div>
+
+      <!-- Export PPTX Button -->
+      <button onclick="downloadAsPPTX()" id="btnExportPptx" class="px-3 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-sm">
+        <i class="fa-solid fa-file-powerpoint"></i>
+        <span>ดาวน์โหลด .PPTX</span>
+      </button>
+
+      <!-- Export Image (PNG) -->
+      <button onclick="downloadAsImage()" class="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 transition shadow-md shadow-amber-500/20">
+        <i class="fa-solid fa-image"></i>
+        <span>เซฟรูป PNG</span>
+      </button>
+
+      <!-- Print / PDF -->
+      <button onclick="window.print()" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 transition">
+        <i class="fa-solid fa-print"></i>
+      </button>
+    </div>
+  </header>
+
+  <div class="flex-1 flex overflow-hidden">
+    
+    <!-- Left Sidebar: Controls & Inputs -->
+    <aside class="w-[380px] bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 no-print">
+      
+      <!-- Sidebar Tab Navigation -->
+      <div class="flex border-b border-slate-800 text-xs font-semibold bg-slate-950/60">
+        <button onclick="switchTab('tab-profile')" id="tabBtn-profile" class="flex-1 py-2.5 px-1 border-b-2 border-amber-400 text-amber-400 flex items-center justify-center gap-1 transition">
+          <i class="fa-solid fa-building"></i> ข้อมูล & สเปก
+        </button>
+        <button onclick="switchTab('tab-tags-points')" id="tabBtn-tags-points" class="flex-1 py-2.5 px-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1 transition">
+          <i class="fa-solid fa-tags"></i> แท็ก & จุดเด่น
+        </button>
+        <button onclick="switchTab('tab-media')" id="tabBtn-media" class="flex-1 py-2.5 px-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1 transition">
+          <i class="fa-solid fa-images"></i> รูป & แผนที่
+        </button>
+        <button onclick="switchTab('tab-style')" id="tabBtn-style" class="flex-1 py-2.5 px-1 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center justify-center gap-1 transition">
+          <i class="fa-solid fa-sliders"></i> สัดส่วน & ธีม
+        </button>
+      </div>
+
+      <!-- Tab Contents (Scrollable) -->
+      <div class="flex-1 overflow-y-auto p-3.5 space-y-3.5 text-xs">
+
+        <!-- TAB 1: Profile & Specs -->
+        <div id="tab-profile" class="space-y-3">
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <h3 class="font-bold text-slate-200 text-xs mb-2.5 flex items-center gap-2">
+              <i class="fa-solid fa-circle-info text-amber-400"></i> ข้อมูลหลักแปลงที่ดิน
+            </h3>
+            <div class="space-y-2">
+              <div>
+                <label class="block text-slate-400 text-[11px] mb-0.5">หมวดหมู่ / Sub-title</label>
+                <input type="text" id="inputCategory" value="ชื่อผืนที่ / PROPERTY" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white text-xs focus:border-amber-400 focus:outline-none">
+              </div>
+              <div>
+                <label class="block text-slate-400 text-[11px] mb-0.5">ชื่อโครงการ / แปลงที่ดิน</label>
+                <input type="text" id="inputTitle" value="ชุมสายพระโขนง" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white font-bold text-xs focus:border-amber-400 focus:outline-none">
+              </div>
+            </div>
+          </div>
+
+          <!-- Specifications Table Inputs -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-bold text-slate-200 text-xs flex items-center gap-2">
+                <i class="fa-solid fa-list-check text-amber-400"></i> ตารางสเปกพื้นที่ (9 รายการ)
+              </h3>
+              <button onclick="condenseSpecsWithAI()" class="text-[10px] px-2 py-0.5 rounded bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 hover:bg-indigo-600/50 flex items-center gap-1">
+                <i class="fa-solid fa-compress"></i> AI ย่อให้กระชับ
+              </button>
+            </div>
+            
+            <div class="space-y-2 text-[11px]">
+              <div>
+                <label class="text-slate-400 block mb-0.5"><i class="fa-solid fa-expand text-slate-500 mr-1"></i> ขนาดพื้นที่</label>
+                <input type="text" id="specArea" value="2-2-77.00 ไร่" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white">
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-0.5"><i class="fa-solid fa-building text-slate-500 mr-1"></i> อาคารและสิ่งปลูกสร้าง</label>
+                <textarea id="specBuilding" rows="2" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white leading-tight">อาคาร คสล. เก่า (3ชั้น) พื้นที่รวม 2,270 ตรม. ว่างทั้งหลัง • อาคารชุมสายใหม่ 7 ชั้น พื้นที่รวม 6,780.88 ตรม. ว่าง ชั้น 4 พื้นที่ 925.5 ตรม. • รับ นน. 400-1,500 กก./ตรม.</textarea>
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-0.5"><i class="fa-solid fa-bolt text-slate-500 mr-1"></i> ระบบไฟฟ้า</label>
+                <input type="text" id="specElectric" value="ระบบสายส่งผ่านหน้าที่ดิน 24 KV รองรับโหลดขนาดใหญ่" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white">
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-0.5"><i class="fa-solid fa-droplet text-slate-500 mr-1"></i> ประปา / น้ำท่วม</label>
+                <input type="text" id="specWater" value="การประปานครหลวง • ปลอดน้ำท่วม มีระบบระบายน้ำล้อมรอบ" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white">
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-0.5"><i class="fa-solid fa-wifi text-slate-500 mr-1"></i> ระบบโทรคมนาคม</label>
+                <input type="text" id="specTelecom" value="Fiber NT ถึงอาคาร • Carrier-neutral 2 เส้นทางหลัก" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white">
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-0.5"><i class="fa-solid fa-road text-slate-500 mr-1"></i> การคมนาคมขนส่ง</label>
+                <textarea id="specTransport" rows="2" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white leading-tight">200 ม. จากสถานีรถไฟฟ้าอ่อนนุช • 350 ม. จากจุดขึ้นลงทางพิเศษฉลองรัช • 1.5 กม. จากจุดขึ้นลงทางพิเศษเฉลิมมหานคร</textarea>
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-0.5"><i class="fa-solid fa-map text-slate-500 mr-1"></i> สีผังเมือง</label>
+                <input type="text" id="specZoning" value="สีแดง (พาณิชยกรรม)" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white">
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-0.5"><i class="fa-solid fa-tags text-slate-500 mr-1"></i> ราคา / อัตราค่าเช่า</label>
+                <input type="text" id="specPrice" value="อยู่ระหว่างการประเมินราคา / เปิดรับข้อเสนอร่วมลงทุน" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white">
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-0.5"><i class="fa-solid fa-key text-slate-500 mr-1"></i> กรรมสิทธิ์ / ความพร้อม</label>
+                <input type="text" id="specOwnership" value="ทรัพย์สิน NT เลขที่โฉนด 8556 (พร้อมส่งมอบ)" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white">
+              </div>
+            </div>
+          </div>
+
+          <!-- GPS Coordinates & Google Maps Link -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <h3 class="font-bold text-slate-200 text-xs mb-2 flex items-center justify-between">
+              <span class="flex items-center gap-1.5"><i class="fa-solid fa-location-dot text-amber-400"></i> พิกัด & แผนที่ Google Maps</span>
+              <a id="btnTestMapLink" href="https://www.google.com/maps?q=13.707841,100.601377" target="_blank" class="text-[10px] text-amber-400 hover:underline flex items-center gap-1">
+                <span>ทดสอบลิงก์</span> <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+              </a>
+            </h3>
+            <div class="grid grid-cols-2 gap-2 mb-2">
+              <div>
+                <label class="text-slate-400 text-[10px] block mb-0.5">Latitude (ละติจูด)</label>
+                <input type="text" id="inputLat" value="13.707841" oninput="syncCoords()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white font-mono text-xs">
+              </div>
+              <div>
+                <label class="text-slate-400 text-[10px] block mb-0.5">Longitude (ลองจิจูด)</label>
+                <input type="text" id="inputLng" value="100.601377" oninput="syncCoords()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white font-mono text-xs">
+              </div>
+            </div>
+            <div>
+              <label class="text-slate-400 text-[10px] block mb-0.5">Custom Google Maps URL (ถ้ามีระบุเฉพาะ)</label>
+              <input type="text" id="inputCustomMapUrl" placeholder="ปล่อยว่างเพื่อสร้างลิงก์จากพิกัดอัตโนมัติ" oninput="syncCoords()" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-300 text-[11px]">
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: Target Tags with Highlight Toggle & Points -->
+        <div id="tab-tags-points" class="hidden space-y-3">
+          <!-- Interactive Target Business Tags Manager -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="font-bold text-slate-200 text-xs flex items-center gap-2">
+                <i class="fa-solid fa-tags text-amber-400"></i> กลุ่มธุรกิจเป้าหมาย (Target Business)
+              </h3>
+              <button onclick="addNewTag()" class="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 flex items-center gap-1">
+                <i class="fa-solid fa-plus"></i> เพิ่มแท็ก
+              </button>
+            </div>
+            <p class="text-[10px] text-slate-400 mb-2">คลิกปุ่ม ⭐ เพื่อสลับสถานะ ไฮไลต์ (สีทึบ) / ปกติ (เส้นกรอบ)</p>
+            
+            <div id="tagsListEditor" class="space-y-1.5">
+              <!-- Dynamically populated tags with highlight toggle -->
+            </div>
+          </div>
+
+          <!-- Key Selling Points with AI Condenser -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between mb-1.5">
+              <h3 class="font-bold text-blue-300 text-xs flex items-center gap-1.5">
+                <i class="fa-solid fa-star text-blue-400"></i> จุดขาย (Key Selling Points)
+              </h3>
+              <button onclick="aiPolishPoints('selling')" class="text-[10px] px-2 py-0.5 bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded hover:bg-blue-600/50 flex items-center gap-1">
+                <i class="fa-solid fa-wand-sparkles"></i> AI ขัดเกลา
+              </button>
+            </div>
+            <p class="text-[10px] text-slate-400 mb-1.5">ขึ้นบรรทัดใหม่ 1 บรรทัดต่อ 1 ข้อ (แนะนำ 2-4 ข้อ เพื่อให้พอดีกรอบ)</p>
+            <textarea id="inputSellingPoints" rows="4" oninput="syncPoints()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-sarabun text-xs leading-relaxed">ระยะห่างจาก BTS อ่อนนุชเพียง 200 เมตร อยู่ในระยะเดินเท้าที่สะดวกมาก
+ใกล้ทางด่วน 2 สายหลัก (ฉลองรัช และเฉลิมมหานคร) ทำให้เชื่อมต่อเข้าศูนย์กลางเมืองหรือออกนอกเมืองได้ง่าย
+พร้อมใช้เป็น Data Center หรือพื้นที่ติดตั้งเครื่องจักร/อุปกรณ์น้ำหนักมากโดยไม่ต้องเสริมโครงสร้างใหม่</textarea>
+          </div>
+
+          <!-- Constraints & Notes -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between mb-1.5">
+              <h3 class="font-bold text-amber-300 text-xs flex items-center gap-1.5">
+                <i class="fa-solid fa-triangle-exclamation text-amber-400"></i> ข้อจำกัด / ข้อควรระวัง
+              </h3>
+              <button onclick="aiPolishPoints('caveats')" class="text-[10px] px-2 py-0.5 bg-amber-600/30 text-amber-300 border border-amber-500/40 rounded hover:bg-amber-600/50 flex items-center gap-1">
+                <i class="fa-solid fa-wand-sparkles"></i> AI ขัดเกลา
+              </button>
+            </div>
+            <p class="text-[10px] text-slate-400 mb-1.5">ขึ้นบรรทัดใหม่ 1 บรรทัดต่อ 1 ข้อ (แนะนำ 1-3 ข้อ)</p>
+            <textarea id="inputCaveats" rows="3" oninput="syncPoints()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-sarabun text-xs leading-relaxed">รูปทรงแปลงที่ดินแบบหน้าแคบ-ลึก
+การเข้าออกช่วงชั่วโมงเร่งด่วนอาจมีการจราจรหนาแน่นบริเวณถนนสุขุมวิท</textarea>
+          </div>
+
+          <!-- Slide Footer Text -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <label class="block text-slate-300 text-xs font-semibold mb-1">ข้อความท้ายสไลด์ (Footer)</label>
+            <input type="text" id="inputFooter" value="© National Telecom All Rights Reserved" oninput="syncData()" class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-white text-xs">
+          </div>
+        </div>
+
+        <!-- TAB 3: Media, Images & Aspect Controls -->
+        <div id="tab-media" class="hidden space-y-3">
+          <!-- Satellite Map Upload & Controls -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between mb-1.5">
+              <h3 class="font-bold text-slate-200 text-xs flex items-center gap-2">
+                <i class="fa-solid fa-satellite text-amber-400"></i> ภาพถ่ายดาวเทียม (User Upload)
+              </h3>
+              <label class="flex items-center gap-1.5 cursor-pointer text-[10px] text-slate-300">
+                <input type="checkbox" id="checkShowOverlay" checked onchange="toggleOverlayBox(this.checked)" class="rounded text-amber-500 focus:ring-0">
+                <span>แสดงกรอบระยะ</span>
+              </label>
+            </div>
+            <p class="text-[10px] text-slate-400 mb-2">อัปโหลดภาพแผนที่หรือภาพถ่ายดาวเทียมของคุณเอง</p>
+            
+            <div class="flex items-center gap-2 mb-2">
+              <input type="file" id="fileSatellite" accept="image/*" onchange="handleImageUpload(event, 'imgSatellite', 'thumbSat')" class="hidden">
+              <button onclick="document.getElementById('fileSatellite').click()" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded text-xs flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-upload"></i> อัปโหลดแผนที่ดาวเทียม
+              </button>
+              <button onclick="resetSatelliteImage()" class="text-xs text-slate-400 hover:text-slate-200">
+                รีเซ็ต
+              </button>
+            </div>
+
+            <!-- Image Fit & Position Controls for Satellite -->
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700/60 text-[10px]">
+              <div>
+                <label class="text-slate-400 block mb-0.5">การปรับพอดีภาพ (Fit)</label>
+                <select id="fitSatellite" onchange="updateImageStyle('imgSatellite', 'fit', this.value)" class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-white">
+                  <option value="cover">เต็มกรอบ (Cover)</option>
+                  <option value="contain">เห็นครบรูป (Contain)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-0.5">ตำแหน่งโฟกัส (Position)</label>
+                <select id="posSatellite" onchange="updateImageStyle('imgSatellite', 'pos', this.value)" class="w-full bg-slate-900 border border-slate-700 rounded px-1.5 py-1 text-white">
+                  <option value="center">กึ่งกลาง (Center)</option>
+                  <option value="top">ชิดบน (Top)</option>
+                  <option value="bottom">ชิดล่าง (Bottom)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Dimension Annotations Inputs -->
+            <div id="dimensionInputsArea" class="mt-2.5 pt-2 border-t border-slate-700/60">
+              <label class="text-slate-400 block mb-1 text-[10px]">ตัวเลขระยะขอบเขตที่ดิน</label>
+              <div class="grid grid-cols-2 gap-1.5">
+                <input type="text" id="dimTop" value="หน้ากว้าง 34 ม." oninput="syncDimensions()" placeholder="ขอบบน" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-white text-[10px]">
+                <input type="text" id="dimBottom" value="กว้างหลัง 34 ม." oninput="syncDimensions()" placeholder="ขอบล่าง" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-white text-[10px]">
+                <input type="text" id="dimLeft" value="ลึก 100 ม." oninput="syncDimensions()" placeholder="ขอบซ้าย" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-white text-[10px]">
+                <input type="text" id="dimRight" value="ลึก 100 ม." oninput="syncDimensions()" placeholder="ขอบขวา" class="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-white text-[10px]">
+              </div>
+            </div>
+          </div>
+
+          <!-- Site Photos Upload & Fit Adjusters -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <h3 class="font-bold text-slate-200 text-xs mb-2 flex items-center gap-2">
+              <i class="fa-solid fa-camera text-amber-400"></i> ภาพถ่ายสภาพพื้นที่ (3 ภาพ)
+            </h3>
+            
+            <div class="space-y-3 text-[11px]">
+              <!-- Photo 1 Controls -->
+              <div class="p-2 rounded bg-slate-900/80 border border-slate-800 space-y-1.5">
+                <div class="flex items-center gap-2">
+                  <img id="thumb1" src="https://images.unsplash.com/photo-1577495508048-b635879837f1?w=300&auto=format&fit=crop&q=60" class="w-10 h-8 object-cover rounded border border-slate-700 shrink-0">
+                  <div class="flex-1">
+                    <input type="text" id="caption1" value="สภาพที่ดิน" oninput="syncCaptions()" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-0.5 text-white text-[11px]">
+                  </div>
+                  <input type="file" id="filePhoto1" accept="image/*" onchange="handleImageUpload(event, 'imgPhoto1', 'thumb1')" class="hidden">
+                  <button onclick="document.getElementById('filePhoto1').click()" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded text-[10px] shrink-0">
+                    <i class="fa-solid fa-upload"></i> อัปโหลด
+                  </button>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-slate-400 gap-2">
+                  <span>การแสดงผล:</span>
+                  <div class="flex gap-1.5">
+                    <button onclick="setImageFit('imgPhoto1', 'cover')" class="px-1.5 py-0.5 bg-slate-800 rounded hover:bg-slate-700 text-slate-200">เต็มกรอบ</button>
+                    <button onclick="setImageFit('imgPhoto1', 'contain')" class="px-1.5 py-0.5 bg-slate-800 rounded hover:bg-slate-700 text-slate-200">เห็นครบ</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Photo 2 Controls -->
+              <div class="p-2 rounded bg-slate-900/80 border border-slate-800 space-y-1.5">
+                <div class="flex items-center gap-2">
+                  <img id="thumb2" src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=300&auto=format&fit=crop&q=60" class="w-10 h-8 object-cover rounded border border-slate-700 shrink-0">
+                  <div class="flex-1">
+                    <input type="text" id="caption2" value="สภาพแวดล้อม" oninput="syncCaptions()" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-0.5 text-white text-[11px]">
+                  </div>
+                  <input type="file" id="filePhoto2" accept="image/*" onchange="handleImageUpload(event, 'imgPhoto2', 'thumb2')" class="hidden">
+                  <button onclick="document.getElementById('filePhoto2').click()" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded text-[10px] shrink-0">
+                    <i class="fa-solid fa-upload"></i> อัปโหลด
+                  </button>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-slate-400 gap-2">
+                  <span>การแสดงผล:</span>
+                  <div class="flex gap-1.5">
+                    <button onclick="setImageFit('imgPhoto2', 'cover')" class="px-1.5 py-0.5 bg-slate-800 rounded hover:bg-slate-700 text-slate-200">เต็มกรอบ</button>
+                    <button onclick="setImageFit('imgPhoto2', 'contain')" class="px-1.5 py-0.5 bg-slate-800 rounded hover:bg-slate-700 text-slate-200">เห็นครบ</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Photo 3 Controls -->
+              <div class="p-2 rounded bg-slate-900/80 border border-slate-800 space-y-1.5">
+                <div class="flex items-center gap-2">
+                  <img id="thumb3" src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=300&auto=format&fit=crop&q=60" class="w-10 h-8 object-cover rounded border border-slate-700 shrink-0">
+                  <div class="flex-1">
+                    <input type="text" id="caption3" value="ทางเข้า-ออกโครงการ" oninput="syncCaptions()" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-0.5 text-white text-[11px]">
+                  </div>
+                  <input type="file" id="filePhoto3" accept="image/*" onchange="handleImageUpload(event, 'imgPhoto3', 'thumb3')" class="hidden">
+                  <button onclick="document.getElementById('filePhoto3').click()" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded text-[10px] shrink-0">
+                    <i class="fa-solid fa-upload"></i> อัปโหลด
+                  </button>
+                </div>
+                <div class="flex items-center justify-between text-[10px] text-slate-400 gap-2">
+                  <span>การแสดงผล:</span>
+                  <div class="flex gap-1.5">
+                    <button onclick="setImageFit('imgPhoto3', 'cover')" class="px-1.5 py-0.5 bg-slate-800 rounded hover:bg-slate-700 text-slate-200">เต็มกรอบ</button>
+                    <button onclick="setImageFit('imgPhoto3', 'contain')" class="px-1.5 py-0.5 bg-slate-800 rounded hover:bg-slate-700 text-slate-200">เห็นครบ</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Logo Upload -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <h3 class="font-bold text-slate-200 text-xs mb-1.5 flex items-center gap-2">
+              <i class="fa-solid fa-building-flag text-amber-400"></i> โลโก้องค์กร / บริษัท
+            </h3>
+            <input type="file" id="fileLogo" accept="image/*" onchange="handleImageUpload(event, 'imgLogo')" class="hidden">
+            <div class="flex items-center gap-2">
+              <button onclick="document.getElementById('fileLogo').click()" class="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-slate-200 text-xs">
+                อัปโหลดโลโก้ใหม่
+              </button>
+              <button onclick="resetLogo()" class="text-xs text-slate-400 hover:text-slate-200">
+                ใช้โลโก้ NT
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: Layout Density, Theme & Sizing -->
+        <div id="tab-style" class="hidden space-y-3">
+          <!-- Text Density Mode -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <h3 class="font-bold text-slate-200 text-xs mb-2 flex items-center gap-2">
+              <i class="fa-solid fa-text-height text-amber-400"></i> ความหนาแน่นข้อความ (แก้ปัญหาข้อความล้น)
+            </h3>
+            <div class="grid grid-cols-3 gap-1.5 text-center">
+              <button onclick="setTextDensity('normal')" id="btnDensityNormal" class="p-2 rounded bg-amber-500 text-slate-950 font-bold text-xs">
+                ปกติ (Normal)
+              </button>
+              <button onclick="setTextDensity('compact')" id="btnDensityCompact" class="p-2 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs">
+                กระชับ (Compact)
+              </button>
+              <button onclick="setTextDensity('ultracompact')" id="btnDensityUltra" class="p-2 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs">
+                แน่นสุด (Ultra)
+              </button>
+            </div>
+            <p class="text-[10px] text-slate-400 mt-2">กรณีพิมพ์เนื้อหาเยอะ ให้เลือกโหมด "กระชับ" เพื่อไม่ให้การ์ดด้านล่างตกขอบสไลด์</p>
+          </div>
+
+          <!-- Color Themes -->
+          <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-800">
+            <h3 class="font-bold text-slate-200 text-xs mb-2 flex items-center gap-2">
+              <i class="fa-solid fa-palette text-amber-400"></i> ธีมสีเอกลักษณ์องค์กร
+            </h3>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="applyTheme('corporate-yellow')" class="p-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-amber-400 flex items-center gap-2 text-left">
+                <span class="w-3.5 h-3.5 rounded-full bg-amber-400 shrink-0"></span>
+                <span class="text-[11px] text-slate-200">Corporate NT</span>
+              </button>
+              <button onclick="applyTheme('modern-navy')" class="p-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-blue-400 flex items-center gap-2 text-left">
+                <span class="w-3.5 h-3.5 rounded-full bg-blue-600 shrink-0"></span>
+                <span class="text-[11px] text-slate-200">Modern Navy</span>
+              </button>
+              <button onclick="applyTheme('emerald-green')" class="p-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-emerald-400 flex items-center gap-2 text-left">
+                <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 shrink-0"></span>
+                <span class="text-[11px] text-slate-200">Eco Green</span>
+              </button>
+              <button onclick="applyTheme('luxury-red')" class="p-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-rose-400 flex items-center gap-2 text-left">
+                <span class="w-3.5 h-3.5 rounded-full bg-rose-600 shrink-0"></span>
+                <span class="text-[11px] text-slate-200">Prime Red</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- Right Panel: Canvas & Scaled Preview -->
+    <main class="flex-1 bg-slate-950 p-3 sm:p-5 flex flex-col items-center justify-center overflow-auto relative">
+      
+      <!-- Slide Presentation Viewport Container (Guaranteed 16:9 Aspect Ratio) -->
+      <div id="slideViewport">
+        <div id="presentationSlide" class="slide-wrapper font-prompt relative bg-white text-slate-800 select-none">
+          
+          <!-- TOP HEADER -->
+          <div class="px-6 pt-4 pb-2 flex items-start justify-between border-b border-slate-100 shrink-0">
+            
+            <!-- Left: Title Block with Vertical Accent Bar -->
+            <div class="flex items-center gap-3">
+              <div id="themeVerticalBar" class="w-1.5 h-11 bg-amber-400 rounded-full shrink-0"></div>
+              <div>
+                <div id="displayCategory" contenteditable="false" class="text-[10px] uppercase tracking-wider font-semibold text-slate-400 leading-none">
+                  ชื่อผืนที่ / PROPERTY
+                </div>
+                <h1 id="displayTitle" contenteditable="false" class="text-xl sm:text-2xl font-black tracking-tight text-[#0f2b5c] leading-tight mt-1">
+                  ชุมสายพระโขนง
+                </h1>
+              </div>
+            </div>
+
+            <!-- Right: Target Business Tags with Interactive Highlight Toggle -->
+            <div class="flex flex-col items-end">
+              <span class="text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                กลุ่มธุรกิจที่นำเสนอ (Target Business)
+              </span>
+              <div id="displayTagsContainer" class="flex items-center gap-1.5 flex-wrap justify-end">
+                <!-- Dynamically populated tags -->
+              </div>
+            </div>
+          </div>
+
+          <!-- MAIN CONTENT (2 COLUMNS) -->
+          <div class="flex-1 px-6 py-2.5 grid grid-cols-12 gap-4 overflow-hidden">
+            
+            <!-- LEFT COLUMN (5 of 12 Cols): Visuals, Satellite & Real Site Photos -->
+            <div class="col-span-5 flex flex-col justify-between h-full space-y-2">
+              
+              <!-- 1. Satellite Map Frame -->
+              <div class="relative w-full h-[52%] bg-slate-100 rounded-md overflow-hidden border border-slate-200 shadow-sm flex items-center justify-center group">
+                <img id="imgSatellite" src="https://images.unsplash.com/photo-1524661135-423995f22d0b?w=900&auto=format&fit=crop&q=80" alt="Satellite View" class="w-full h-full object-cover transition duration-300">
+                
+                <!-- Satellite Badge -->
+                <div class="absolute top-2 right-2 bg-white/95 backdrop-blur-sm text-slate-800 text-[9px] font-bold px-2 py-0.5 rounded shadow border border-slate-200/80 flex items-center gap-1 z-10">
+                  <i class="fa-solid fa-map-location-dot text-blue-600"></i>
+                  <span>แผนที่ตั้ง (Satellite View)</span>
+                </div>
+
+                <!-- Satellite Dimension Overlay Tags (Toggleable) -->
+                <div id="satelliteOverlayWrapper" class="absolute inset-0 pointer-events-none flex items-center justify-center p-2">
+                  <div class="relative w-4/5 h-5/6 border-2 border-amber-400 bg-amber-400/10 rounded flex flex-col justify-between p-1">
+                    <div class="w-full flex justify-center -mt-2.5">
+                      <span id="displayDimTop" class="dim-tag">หน้ากว้าง 34 ม.</span>
+                    </div>
+                    <div class="flex items-center justify-between px-1">
+                      <span id="displayDimLeft" class="dim-tag -ml-3">ลึก 100 ม.</span>
+                      <i class="fa-solid fa-location-dot text-red-500 text-base drop-shadow animate-pulse"></i>
+                      <span id="displayDimRight" class="dim-tag -mr-3">ลึก 100 ม.</span>
+                    </div>
+                    <div class="w-full flex justify-center -mb-2.5">
+                      <span id="displayDimBottom" class="dim-tag">กว้างหลัง 34 ม.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Site Photos (3 Thumbnails with Captions) -->
+              <div class="w-full h-[32%] grid grid-cols-3 gap-2">
+                <!-- Photo 1 -->
+                <div class="relative h-full rounded overflow-hidden border border-slate-200 shadow-sm group bg-slate-50">
+                  <img id="imgPhoto1" src="https://images.unsplash.com/photo-1577495508048-b635879837f1?w=500&auto=format&fit=crop&q=70" class="w-full h-full object-cover transition">
+                  <span id="displayCaption1" contenteditable="false" class="absolute top-1 left-1 bg-white/95 text-slate-900 font-bold text-[8.5px] px-1.5 py-0.5 rounded shadow">
+                    สภาพที่ดิน
+                  </span>
+                </div>
+                <!-- Photo 2 -->
+                <div class="relative h-full rounded overflow-hidden border border-slate-200 shadow-sm group bg-slate-50">
+                  <img id="imgPhoto2" src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=500&auto=format&fit=crop&q=70" class="w-full h-full object-cover transition">
+                  <span id="displayCaption2" contenteditable="false" class="absolute top-1 left-1 bg-white/95 text-slate-900 font-bold text-[8.5px] px-1.5 py-0.5 rounded shadow">
+                    สภาพแวดล้อม
+                  </span>
+                </div>
+                <!-- Photo 3 -->
+                <div class="relative h-full rounded overflow-hidden border border-slate-200 shadow-sm group bg-slate-50">
+                  <img id="imgPhoto3" src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=500&auto=format&fit=crop&q=70" class="w-full h-full object-cover transition">
+                  <span id="displayCaption3" contenteditable="false" class="absolute top-1 left-1 bg-white/95 text-slate-900 font-bold text-[8.5px] px-1.5 py-0.5 rounded shadow">
+                    ทางเข้า-ออก
+                  </span>
+                </div>
+              </div>
+
+              <!-- 3. Coordinates & Clickable Google Maps Link Bar -->
+              <div id="themeGpsBar" class="w-full h-[12%] bg-[#081e3e] text-white rounded-md px-3 flex items-center justify-between shadow-sm">
+                <a id="displayCoordsLink" href="https://www.google.com/maps?q=13.707841,100.601377" target="_blank" class="flex items-center gap-2 hover:opacity-90 transition group" title="คลิกเพื่อเปิดใน Google Maps">
+                  <i class="fa-solid fa-location-dot text-amber-400 text-xs group-hover:scale-110 transition"></i>
+                  <div class="leading-tight">
+                    <div class="text-[7.5px] uppercase tracking-wider text-slate-300 font-medium">พิกัด (LOCATION)</div>
+                    <div id="displayCoords" class="text-[10.5px] font-bold font-mono text-amber-300">
+                      13.707841, 100.601377
+                    </div>
+                  </div>
+                </a>
+                <a id="displayMapUrl" href="https://www.google.com/maps?q=13.707841,100.601377" target="_blank" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[9.5px] px-2.5 py-1 rounded flex items-center gap-1 transition shadow-sm">
+                  <span>เปิดใน Google Maps</span>
+                  <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+                </a>
+              </div>
+
+            </div>
+
+            <!-- RIGHT COLUMN (7 of 12 Cols): Property Specs Table & Key Selling Points -->
+            <div id="rightColumnContainer" class="col-span-7 flex flex-col justify-between h-full space-y-1.5 overflow-hidden">
+              
+              <!-- Table Header -->
+              <div class="flex items-center gap-2 pb-0.5 border-b border-slate-200 shrink-0">
+                <i class="fa-solid fa-list-check text-blue-900 text-xs"></i>
+                <h2 class="text-[11px] font-bold text-slate-800 tracking-tight">ข้อมูลพื้นที่ (Property Profile)</h2>
+              </div>
+
+              <!-- Specs Table (9 Rows with Balanced Height and Wrapping Protection) -->
+              <div id="specsTableContainer" class="flex-1 flex flex-col justify-between text-[10px] leading-tight font-sarabun pr-0.5 overflow-hidden">
+                
+                <!-- Row 1: ขนาดพื้นที่ -->
+                <div class="flex items-center py-0.5 px-2 bg-slate-50/90 rounded border-b border-slate-100">
+                  <div class="w-32 flex items-center gap-1.5 text-slate-700 font-bold shrink-0">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-950 text-white flex items-center justify-center text-[7.5px]"><i class="fa-solid fa-expand"></i></span>
+                    <span>ขนาดพื้นที่</span>
+                  </div>
+                  <div id="displayArea" contenteditable="false" class="flex-1 font-semibold text-slate-900 truncate">
+                    2-2-77.00 ไร่
+                  </div>
+                </div>
+
+                <!-- Row 2: อาคาร -->
+                <div class="flex items-start py-0.5 px-2 rounded border-b border-slate-100">
+                  <div class="w-32 flex items-center gap-1.5 text-slate-700 font-bold shrink-0 pt-0.5">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-950 text-white flex items-center justify-center text-[7.5px]"><i class="fa-solid fa-building"></i></span>
+                    <span>อาคาร</span>
+                  </div>
+                  <div id="displayBuilding" contenteditable="false" class="flex-1 text-slate-700 line-clamp-2 leading-snug">
+                    อาคาร คสล. เก่า (3ชั้น) พื้นที่รวม 2,270 ตรม. ว่างทั้งหลัง • อาคารชุมสายใหม่ 7 ชั้น พื้นที่รวม 6,780.88 ตรม. ว่าง ชั้น 4 พื้นที่ 925.5 ตรม. • รับ นน. 400-1,500 กก./ตรม.
+                  </div>
+                </div>
+
+                <!-- Row 3: ไฟฟ้า -->
+                <div class="flex items-center py-0.5 px-2 bg-slate-50/90 rounded border-b border-slate-100">
+                  <div class="w-32 flex items-center gap-1.5 text-slate-700 font-bold shrink-0">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-950 text-white flex items-center justify-center text-[7.5px]"><i class="fa-solid fa-bolt"></i></span>
+                    <span>ไฟฟ้า</span>
+                  </div>
+                  <div id="displayElectric" contenteditable="false" class="flex-1 text-slate-800 font-medium truncate">
+                    ระบบสายส่งผ่านหน้าที่ดิน 24 KV รองรับโหลดขนาดใหญ่
+                  </div>
+                </div>
+
+                <!-- Row 4: ประปา / น้ำท่วม -->
+                <div class="flex items-center py-0.5 px-2 rounded border-b border-slate-100">
+                  <div class="w-32 flex items-center gap-1.5 text-slate-700 font-bold shrink-0">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-950 text-white flex items-center justify-center text-[7.5px]"><i class="fa-solid fa-droplet"></i></span>
+                    <span>ประปา / น้ำท่วม</span>
+                  </div>
+                  <div id="displayWater" contenteditable="false" class="flex-1 text-slate-800 truncate">
+                    การประปานครหลวง • ปลอดน้ำท่วม มีระบบระบายน้ำล้อมรอบ
+                  </div>
+                </div>
+
+                <!-- Row 5: โทรคมนาคม -->
+                <div class="flex items-center py-0.5 px-2 bg-slate-50/90 rounded border-b border-slate-100">
+                  <div class="w-32 flex items-center gap-1.5 text-slate-700 font-bold shrink-0">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-950 text-white flex items-center justify-center text-[7.5px]"><i class="fa-solid fa-wifi"></i></span>
+                    <span>โทรคมนาคม</span>
+                  </div>
+                  <div id="displayTelecom" contenteditable="false" class="flex-1 text-slate-800 truncate">
+                    Fiber NT ถึงอาคาร • Carrier-neutral 2 เส้นทางหลัก
+                  </div>
+                </div>
+
+                <!-- Row 6: คมนาคม -->
+                <div class="flex items-start py-0.5 px-2 rounded border-b border-slate-100">
+                  <div class="w-32 flex items-center gap-1.5 text-slate-700 font-bold shrink-0 pt-0.5">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-950 text-white flex items-center justify-center text-[7.5px]"><i class="fa-solid fa-road"></i></span>
+                    <span>คมนาคม</span>
+                  </div>
+                  <div id="displayTransport" contenteditable="false" class="flex-1 text-slate-800 line-clamp-2 leading-snug">
+                    200 ม. จากสถานีรถไฟฟ้าอ่อนนุช • 350 ม. จากจุดขึ้นลงทางพิเศษฉลองรัช • 1.5 กม. จากจุดขึ้นลงทางพิเศษเฉลิมมหานคร
+                  </div>
+                </div>
+
+                <!-- Row 7: สีผังเมือง -->
+                <div class="flex items-center py-0.5 px-2 bg-slate-50/90 rounded border-b border-slate-100">
+                  <div class="w-32 flex items-center gap-1.5 text-slate-700 font-bold shrink-0">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-950 text-white flex items-center justify-center text-[7.5px]"><i class="fa-solid fa-map"></i></span>
+                    <span>สีผังเมือง</span>
+                  </div>
+                  <div id="displayZoning" contenteditable="false" class="flex-1 font-bold text-red-700 truncate">
+                    สีแดง (พาณิชยกรรม)
+                  </div>
+                </div>
+
+                <!-- Row 8: ราคา / อัตรา -->
+                <div class="flex items-center py-0.5 px-2 rounded border-b border-slate-100">
+                  <div class="w-32 flex items-center gap-1.5 text-slate-700 font-bold shrink-0">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-950 text-white flex items-center justify-center text-[7.5px]"><i class="fa-solid fa-tags"></i></span>
+                    <span>ราคา / อัตรา</span>
+                  </div>
+                  <div id="displayPrice" contenteditable="false" class="flex-1 text-slate-800 font-medium truncate">
+                    อยู่ระหว่างการประเมินราคา / เปิดรับข้อเสนอร่วมลงทุน
+                  </div>
+                </div>
+
+                <!-- Row 9: กรรมสิทธิ์ -->
+                <div class="flex items-center py-0.5 px-2 bg-slate-50/90 rounded">
+                  <div class="w-32 flex items-center gap-1.5 text-slate-700 font-bold shrink-0">
+                    <span class="w-3.5 h-3.5 rounded-full bg-blue-950 text-white flex items-center justify-center text-[7.5px]"><i class="fa-solid fa-key"></i></span>
+                    <span>กรรมสิทธิ์</span>
+                  </div>
+                  <div id="displayOwnership" contenteditable="false" class="flex-1 text-slate-800 truncate">
+                    ทรัพย์สิน NT เลขที่โฉนด 8556 (พร้อมส่งมอบ)
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- BOTTOM 2 HIGHLIGHT CARDS (Guaranteed never cut off) -->
+              <div id="highlightCardsContainer" class="grid grid-cols-12 gap-2.5 pt-0.5 shrink-0 max-h-[145px]">
+                
+                <!-- Card 1: จุดขาย (Key Selling Points) -->
+                <div class="col-span-7 bg-white rounded-lg p-2 border border-blue-100 shadow-sm flex flex-col justify-start overflow-hidden">
+                  <div class="flex items-center gap-1.5 text-blue-950 font-bold text-[10px] mb-1 shrink-0">
+                    <div class="w-4 h-4 rounded-full bg-[#0f2b5c] text-amber-400 flex items-center justify-center text-[8.5px]">
+                      <i class="fa-solid fa-star"></i>
+                    </div>
+                    <span>จุดขาย (Key Selling Points)</span>
+                  </div>
+                  <ul id="displaySellingPointsList" contenteditable="false" class="space-y-0.5 text-[9.5px] text-slate-700 font-sarabun overflow-y-auto pr-1">
+                    <!-- Injected via JS -->
+                  </ul>
+                </div>
+
+                <!-- Card 2: ข้อจำกัด / ข้อควรระวัง -->
+                <div class="col-span-5 bg-amber-50/60 rounded-lg p-2 border border-amber-200/80 shadow-sm flex flex-col justify-start overflow-hidden">
+                  <div class="flex items-center gap-1.5 text-amber-900 font-bold text-[10px] mb-1 shrink-0">
+                    <div class="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center text-[8.5px]">
+                      <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <span>ข้อจำกัด / ข้อควรระวัง</span>
+                  </div>
+                  <ul id="displayCaveatsList" contenteditable="false" class="space-y-0.5 text-[9.5px] text-slate-700 font-sarabun overflow-y-auto pr-1">
+                    <!-- Injected via JS -->
+                  </ul>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- BOTTOM FOOTER -->
+          <div class="px-6 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+            <!-- Logo & Brand -->
+            <div class="flex items-center gap-2">
+              <div id="logoContainer" class="flex items-center gap-1.5">
+                <svg id="defaultVectorLogo" class="h-5 w-auto" viewBox="0 0 160 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="15" width="6" height="25" rx="3" fill="#FFCC00" />
+                  <rect x="10" y="5" width="6" height="35" rx="3" fill="#FFCC00" />
+                  <rect x="20" y="20" width="6" height="20" rx="3" fill="#FFCC00" />
+                  <text x="35" y="32" font-family="'Prompt', sans-serif" font-weight="900" font-size="28" fill="#0f2b5c">nt</text>
+                  <text x="72" y="24" font-family="'Prompt', sans-serif" font-weight="600" font-size="9" fill="#0f2b5c">National</text>
+                  <text x="72" y="34" font-family="'Prompt', sans-serif" font-weight="600" font-size="9" fill="#0f2b5c">Telecom</text>
+                </svg>
+                <img id="imgCustomLogo" class="hidden h-6 object-contain" src="" alt="Custom Logo">
+              </div>
+            </div>
+
+            <!-- Copyright & Right Edge Accent Bar -->
+            <div class="flex items-center gap-3">
+              <div id="displayFooter" contenteditable="false" class="text-[8.5px] text-slate-500 font-medium">
+                © National Telecom All Rights Reserved
+              </div>
+              <div id="themeFooterAccent" class="w-2.5 h-5 bg-amber-400 rounded-sm"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Quick Canvas Scale Toolbar -->
+      <div class="mt-3 flex items-center gap-3 text-xs text-slate-400 no-print">
+        <span class="flex items-center gap-1"><i class="fa-solid fa-expand text-amber-400"></i> สัดส่วน 16:9 มาตรฐาน</span>
+        <span>•</span>
+        <button onclick="zoomSlide(0.9)" class="hover:text-white px-1.5 py-0.5 bg-slate-800 rounded text-[11px]">- ย่อ</button>
+        <button onclick="zoomSlide(1)" class="hover:text-white px-1.5 py-0.5 bg-slate-800 rounded text-[11px]">100%</button>
+        <button onclick="zoomSlide(1.1)" class="hover:text-white px-1.5 py-0.5 bg-slate-800 rounded text-[11px]">+ ขยาย</button>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- AI Generator Modal -->
+  <div id="aiModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl">
+      
+      <div class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-white">
+            <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white">AI Property Pitch Generator</h3>
+            <p class="text-[11px] text-slate-400">วิเคราะห์ข้อมูลอสังหาฯ และสร้าง One-Pager อัตโนมัติด้วย Gemini</p>
+          </div>
+        </div>
+        <button onclick="closeAiModal()" class="text-slate-400 hover:text-white text-base">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">กรอกข้อมูลที่ดินคร่าวๆ หรือข้อกำหนดของคุณ</label>
+          <textarea id="aiPromptInput" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-amber-400" placeholder="เช่น ที่ดินพร้อมอาคาร 4 ไร่ ติดถนนใหญ่ ใกล้สถานีรถไฟความเร็วสูง เหมาะทำศูนย์กระจายสินค้าหรือ Data Center..."></textarea>
+        </div>
+
+        <div>
+          <span class="text-[10px] text-slate-400 block mb-1">หรือคลิกเลือกเทมเพลตสำเร็จรูป:</span>
+          <div class="flex flex-wrap gap-1.5">
+            <button onclick="fillAiPrompt('ที่ดินพร้อมอาคารสำนักงานและชุมสาย พระโขนง 2-2-77 ไร่ ใกล้ BTS อ่อนนุช 200 ม. เหมาะทำ Data Center หรือ Co-Working')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] text-slate-300 border border-slate-700">
+              🏢 พระโขนง Data Center
+            </button>
+            <button onclick="fillAiPrompt('ที่ดินอุตสาหกรรม EEC นิคมแหลมฉบัง 15 ไร่ ติดถนนใหญ่ 8 เลน ไฟฟ้าแรงสูง 115KV เหมาะเป็นศูนย์กระจายสินค้าอัจฉริยะ (Smart Logistics)')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] text-slate-300 border border-slate-700">
+              🚢 แหลมฉบัง Logistics
+            </button>
+            <button onclick="fillAiPrompt('ที่ดินริมชายหาดชะอำ-หัวหิน 3 ไร่ หน้ากว้าง 45 ม. เหมาะพัฒนา Luxury Wellness Resort & Pool Villa')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] text-slate-300 border border-slate-700">
+              🏖️ หัวหิน Wellness Resort
+            </button>
+          </div>
+        </div>
+
+        <!-- Status Indicator -->
+        <div id="aiStatus" class="hidden p-2.5 rounded-lg bg-indigo-950/50 border border-indigo-500/40 text-indigo-300 text-xs flex items-center gap-2">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          <span id="aiStatusText">AI กำลังวิเคราะห์และจัดโครงสร้างสไลด์...</span>
+        </div>
+      </div>
+
+      <div class="px-5 py-3 bg-slate-950 border-t border-slate-800 flex items-center justify-end gap-2">
+        <button onclick="closeAiModal()" class="px-3 py-1.5 rounded-lg text-slate-400 hover:text-white text-xs">
+          ยกเลิก
+        </button>
+        <button onclick="runAiGeneration()" id="aiSubmitBtn" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-indigo-500/20">
+          <i class="fa-solid fa-sparkles"></i>
+          <span>สร้างสไลด์ด้วย AI</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification Box -->
+  <div id="toastBox" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white shadow-2xl text-xs">
+    <div id="toastIcon" class="text-amber-400 text-sm">
+      <i class="fa-solid fa-circle-check"></i>
+    </div>
+    <span id="toastMessage">บันทึกข้อมูลเรียบร้อย</span>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       Application State & Master Data
+       ========================================================================== */
+    const appState = {
+      inlineEditMode: false,
+      currentTheme: 'corporate-yellow',
+      currentDensity: 'normal',
+      zoomLevel: 1,
+      // Target business tags with individual highlight toggling
+      tags: [
+        { id: 1, text: 'Potential location', isHighlighted: true },
+        { id: 2, text: 'Data center potential', isHighlighted: true },
+        { id: 3, text: 'Office', isHighlighted: false },
+        { id: 4, text: 'Other', isHighlighted: false }
+      ],
+      coords: {
+        lat: '13.707841',
+        lng: '100.601377',
+        customUrl: ''
+      },
+      sellingPoints: [
+        'ระยะห่างจาก BTS อ่อนนุชเพียง 200 เมตร อยู่ในระยะเดินเท้าที่สะดวกมาก',
+        'ใกล้ทางด่วน 2 สายหลัก (ฉลองรัช และเฉลิมมหานคร) ทำให้เชื่อมต่อเข้าศูนย์กลางเมืองหรือออกนอกเมืองได้ง่าย',
+        'พร้อมใช้เป็น Data Center หรือพื้นที่ติดตั้งเครื่องจักร/อุปกรณ์น้ำหนักมากโดยไม่ต้องเสริมโครงสร้างใหม่'
+      ],
+      caveats: [
+        'รูปทรงแปลงที่ดินแบบหน้าแคบ-ลึก',
+        'การเข้าออกช่วงชั่วโมงเร่งด่วนอาจมีการจราจรหนาแน่นบริเวณถนนสุขุมวิท'
+      ],
+      imageStyles: {
+        imgSatellite: { fit: 'cover', pos: 'center' },
+        imgPhoto1: { fit: 'cover', pos: 'center' },
+        imgPhoto2: { fit: 'cover', pos: 'center' },
+        imgPhoto3: { fit: 'cover', pos: 'center' }
+      }
+    };
+
+    // Keep direct edits on the slide in the same inputs used by preview and export.
+    const inlineTextInputs = {
+      displayCategory: 'inputCategory', displayTitle: 'inputTitle',
+      displayArea: 'specArea', displayBuilding: 'specBuilding',
+      displayElectric: 'specElectric', displayWater: 'specWater',
+      displayTelecom: 'specTelecom', displayTransport: 'specTransport',
+      displayZoning: 'specZoning', displayPrice: 'specPrice',
+      displayOwnership: 'specOwnership', displayCaption1: 'caption1',
+      displayCaption2: 'caption2', displayCaption3: 'caption3',
+      displayFooter: 'inputFooter', displayDimTop: 'dimTop',
+      displayDimBottom: 'dimBottom', displayDimLeft: 'dimLeft',
+      displayDimRight: 'dimRight'
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTagsEditor();
+      renderSlideTags();
+      renderPoints();
+      syncData();
+      syncCoords();
+      applyTheme('corporate-yellow');
+      setupInlineEditing();
+    });
+
+    /* Notification Helper */
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toastBox');
+      const msgEl = document.getElementById('toastMessage');
+      const iconEl = document.getElementById('toastIcon');
+
+      msgEl.textContent = message;
+      iconEl.innerHTML = isError 
+        ? '<i class="fa-solid fa-circle-exclamation text-rose-400"></i>' 
+        : '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    /* Sidebar Tab Switcher */
+    function switchTab(tabId) {
+      ['tab-profile', 'tab-tags-points', 'tab-media', 'tab-style'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+      });
+      ['tabBtn-profile', 'tabBtn-tags-points', 'tabBtn-media', 'tabBtn-style'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.classList.remove('border-amber-400', 'text-amber-400');
+          btn.classList.add('border-transparent', 'text-slate-400');
+        }
+      });
+
+      document.getElementById(tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('tabBtn-' + tabId.replace('tab-', ''));
+      if (activeBtn) {
+        activeBtn.classList.remove('border-transparent', 'text-slate-400');
+        activeBtn.classList.add('border-amber-400', 'text-amber-400');
+      }
+    }
+
+    /* Zoom Canvas Viewport */
+    function zoomSlide(scale) {
+      appState.zoomLevel = scale;
+      const viewport = document.getElementById('slideViewport');
+      viewport.style.transform = `scale(${scale})`;
+      showToast(`ซูมสไลด์: ${Math.round(scale * 100)}%`);
+    }
+
+    /* Synchronize Specs & Text */
+    function syncData() {
+      document.getElementById('displayCategory').textContent = document.getElementById('inputCategory').value;
+      document.getElementById('displayTitle').textContent = document.getElementById('inputTitle').value;
+      document.getElementById('displayFooter').textContent = document.getElementById('inputFooter').value;
+
+      document.getElementById('displayArea').textContent = document.getElementById('specArea').value;
+      document.getElementById('displayBuilding').textContent = document.getElementById('specBuilding').value;
+      document.getElementById('displayElectric').textContent = document.getElementById('specElectric').value;
+      document.getElementById('displayWater').textContent = document.getElementById('specWater').value;
+      document.getElementById('displayTelecom').textContent = document.getElementById('specTelecom').value;
+      document.getElementById('displayTransport').textContent = document.getElementById('specTransport').value;
+      document.getElementById('displayZoning').textContent = document.getElementById('specZoning').value;
+      document.getElementById('displayPrice').textContent = document.getElementById('specPrice').value;
+      document.getElementById('displayOwnership').textContent = document.getElementById('specOwnership').value;
+    }
+
+    /* Synchronize Coordinates & Google Maps Links */
+    function syncCoords() {
+      const lat = document.getElementById('inputLat').value.trim();
+      const lng = document.getElementById('inputLng').value.trim();
+      const customUrl = document.getElementById('inputCustomMapUrl').value.trim();
+
+      appState.coords.lat = lat;
+      appState.coords.lng = lng;
+      appState.coords.customUrl = customUrl;
+
+      const mapLink = customUrl ? customUrl : `https://www.google.com/maps?q=${lat},${lng}`;
+
+      document.getElementById('displayCoords').textContent = `${lat}, ${lng}`;
+      document.getElementById('displayCoordsLink').href = mapLink;
+      document.getElementById('displayMapUrl').href = mapLink;
+      document.getElementById('btnTestMapLink').href = mapLink;
+    }
+
+    function syncDimensions() {
+      document.getElementById('displayDimTop').textContent = document.getElementById('dimTop').value;
+      document.getElementById('displayDimBottom').textContent = document.getElementById('dimBottom').value;
+      document.getElementById('displayDimLeft').textContent = document.getElementById('dimLeft').value;
+      document.getElementById('displayDimRight').textContent = document.getElementById('dimRight').value;
+    }
+
+    function toggleOverlayBox(show) {
+      const overlay = document.getElementById('satelliteOverlayWrapper');
+      const inputs = document.getElementById('dimensionInputsArea');
+      if (show) {
+        overlay.classList.remove('hidden');
+        inputs.classList.remove('hidden');
+      } else {
+        overlay.classList.add('hidden');
+        inputs.classList.add('hidden');
+      }
+    }
+
+    function syncCaptions() {
+      document.getElementById('displayCaption1').textContent = document.getElementById('caption1').value;
+      document.getElementById('displayCaption2').textContent = document.getElementById('caption2').value;
+      document.getElementById('displayCaption3').textContent = document.getElementById('caption3').value;
+    }
+
+    /* Target Business Tags: Render in Sidebar Editor */
+    function renderTagsEditor() {
+      const listEl = document.getElementById('tagsListEditor');
+      listEl.innerHTML = '';
+
+      appState.tags.forEach((tag, idx) => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center gap-1.5 bg-slate-950/60 p-1.5 rounded border border-slate-800 text-xs';
+        
+        const highlightBtn = document.createElement('button');
+        highlightBtn.className = `px-2 py-1 rounded text-[10px] font-bold transition flex items-center gap-1 ${
+          tag.isHighlighted 
+            ? 'bg-amber-400 text-slate-950' 
+            : 'bg-slate-800 text-slate-400 hover:text-white'
+        }`;
+        highlightBtn.innerHTML = tag.isHighlighted ? '<i class="fa-solid fa-star"></i> ไฮไลต์' : '<i class="fa-regular fa-star"></i> ปกติ';
+        highlightBtn.title = 'คลิกเพื่อสลับสถานะ ไฮไลต์ / ปกติ';
+        highlightBtn.onclick = () => toggleTagHighlight(tag.id);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = tag.text;
+        input.dataset.tagId = String(tag.id);
+        input.className = 'flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-white text-[11px] focus:outline-none';
+        input.oninput = (e) => {
+          tag.text = e.target.value;
+          renderSlideTags();
+        };
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'text-slate-500 hover:text-rose-400 px-1';
+        deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can text-[10px]"></i>';
+        deleteBtn.onclick = () => deleteTag(tag.id);
+
+        item.appendChild(highlightBtn);
+        item.appendChild(input);
+        item.appendChild(deleteBtn);
+        listEl.appendChild(item);
+      });
+    }
+
+    function toggleTagHighlight(id) {
+      const tag = appState.tags.find(t => t.id === id);
+      if (tag) {
+        tag.isHighlighted = !tag.isHighlighted;
+        renderTagsEditor();
+        renderSlideTags();
+      }
+    }
+
+    function addNewTag() {
+      const newId = Date.now();
+      appState.tags.push({ id: newId, text: 'ธุรกิจเป้าหมายใหม่', isHighlighted: false });
+      renderTagsEditor();
+      renderSlideTags();
+    }
+
+    function deleteTag(id) {
+      if (appState.tags.length <= 1) {
+        showToast('ต้องมีอย่างน้อย 1 แท็ก', true);
+        return;
+      }
+      appState.tags = appState.tags.filter(t => t.id !== id);
+      renderTagsEditor();
+      renderSlideTags();
+    }
+
+    /* Render Tags on the 16:9 Presentation Slide */
+    function renderSlideTags() {
+      const container = document.getElementById('displayTagsContainer');
+      container.innerHTML = '';
+
+      appState.tags.forEach(tag => {
+        const badge = document.createElement('div');
+        badge.onclick = () => { if (!appState.inlineEditMode) toggleTagHighlight(tag.id); };
+        badge.title = 'คลิกเพื่อสลับไฮไลต์/ปกติ';
+        badge.className = 'cursor-pointer transition transform hover:scale-105 select-none ';
+
+        if (tag.isHighlighted) {
+          badge.className += 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#081e3e] text-white flex items-center gap-1 shadow-xs border border-transparent';
+          badge.innerHTML = '<i class="fa-solid fa-check text-amber-400 text-[7px]"></i>';
+        } else {
+          badge.className += 'text-[9px] font-medium px-2 py-0.5 rounded-full border border-slate-300 text-slate-700 bg-white hover:bg-slate-50';
+        }
+        const label = document.createElement('span');
+        label.textContent = tag.text;
+        label.dataset.inlineTag = String(tag.id);
+        label.contentEditable = appState.inlineEditMode ? 'true' : 'false';
+        badge.appendChild(label);
+        container.appendChild(badge);
+      });
+    }
+
+    /* Selling Points & Caveats Render */
+    function syncPoints() {
+      const spText = document.getElementById('inputSellingPoints').value;
+      const cvText = document.getElementById('inputCaveats').value;
+
+      appState.sellingPoints = spText.split('\n').map(s => s.trim()).filter(Boolean);
+      appState.caveats = cvText.split('\n').map(c => c.trim()).filter(Boolean);
+
+      renderPoints();
+    }
+
+    function renderPoints() {
+      const spList = document.getElementById('displaySellingPointsList');
+      const cvList = document.getElementById('displayCaveatsList');
+
+      spList.innerHTML = '';
+      appState.sellingPoints.forEach(pt => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-1 leading-snug';
+        li.innerHTML = '<span class="text-blue-900 font-bold">•</span>';
+        const text = document.createElement('span');
+        text.textContent = pt;
+        text.dataset.inlineList = 'sellingPoints';
+        text.contentEditable = appState.inlineEditMode ? 'true' : 'false';
+        li.appendChild(text);
+        spList.appendChild(li);
+      });
+
+      cvList.innerHTML = '';
+      appState.caveats.forEach(cv => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-1 leading-snug';
+        li.innerHTML = '<span class="text-amber-600 font-bold">•</span>';
+        const text = document.createElement('span');
+        text.textContent = cv;
+        text.dataset.inlineList = 'caveats';
+        text.contentEditable = appState.inlineEditMode ? 'true' : 'false';
+        li.appendChild(text);
+        cvList.appendChild(li);
+      });
+    }
+
+    /* Image Handling: Upload, Fit & Alignment */
+    function handleImageUpload(event, targetImgId, thumbId = null) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const imgEl = document.getElementById(targetImgId);
+        imgEl.src = e.target.result;
+
+        if (targetImgId === 'imgLogo') {
+          imgEl.classList.remove('hidden');
+          document.getElementById('defaultVectorLogo').classList.add('hidden');
+        }
+
+        if (thumbId) {
+          const thumbEl = document.getElementById(thumbId);
+          if (thumbEl) thumbEl.src = e.target.result;
+        }
+
+        showToast('อัปโหลดและจัดตำแหน่งรูปภาพเรียบร้อย');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function updateImageStyle(imgId, prop, value) {
+      const img = document.getElementById(imgId);
+      if (prop === 'fit') {
+        img.style.objectFit = value;
+      } else if (prop === 'pos') {
+        img.style.objectPosition = value;
+      }
+    }
+
+    function setImageFit(imgId, mode) {
+      const img = document.getElementById(imgId);
+      img.style.objectFit = mode;
+      showToast(`ตั้งค่าภาพเป็น: ${mode === 'cover' ? 'เต็มกรอบ' : 'เห็นครบทั้งรูป'}`);
+    }
+
+    function resetSatelliteImage() {
+      document.getElementById('imgSatellite').src = 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=900&auto=format&fit=crop&q=80';
+      showToast('รีเซ็ตภาพแผนที่เป็นค่าเริ่มต้น');
+    }
+
+    function resetLogo() {
+      document.getElementById('imgCustomLogo').classList.add('hidden');
+      document.getElementById('defaultVectorLogo').classList.remove('hidden');
+      showToast('รีเซ็ตโลโก้เป็น NT Telecom');
+    }
+
+    /* Text Density Switcher (Fixes cards falling off screen) */
+    function setTextDensity(mode) {
+      appState.currentDensity = mode;
+      const specsTable = document.getElementById('specsTableContainer');
+      const cards = document.getElementById('highlightCardsContainer');
+      const spList = document.getElementById('displaySellingPointsList');
+      const cvList = document.getElementById('displayCaveatsList');
+
+      ['btnDensityNormal', 'btnDensityCompact', 'btnDensityUltra'].forEach(id => {
+        const btn = document.getElementById(id);
+        btn.className = 'p-2 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs';
+      });
+
+      specsTable.classList.remove('density-compact', 'density-ultracompact');
+      spList.classList.remove('density-compact', 'density-ultracompact');
+      cvList.classList.remove('density-compact', 'density-ultracompact');
+
+      if (mode === 'normal') {
+        document.getElementById('btnDensityNormal').className = 'p-2 rounded bg-amber-500 text-slate-950 font-bold text-xs';
+      } else if (mode === 'compact') {
+        document.getElementById('btnDensityCompact').className = 'p-2 rounded bg-amber-500 text-slate-950 font-bold text-xs';
+        specsTable.classList.add('density-compact');
+        spList.classList.add('density-compact');
+        cvList.classList.add('density-compact');
+      } else if (mode === 'ultracompact') {
+        document.getElementById('btnDensityUltra').className = 'p-2 rounded bg-amber-500 text-slate-950 font-bold text-xs';
+        specsTable.classList.add('density-ultracompact');
+        spList.classList.add('density-ultracompact');
+        cvList.classList.add('density-ultracompact');
+      }
+
+      showToast(`ปรับความหนาแน่นตัวอักษร: ${mode}`);
+    }
+
+    /* Smart Auto-Fit and Arrange */
+    function autoFitAndArrange() {
+      // Calculate total text volume to automatically set optimal density
+      const buildingLen = document.getElementById('specBuilding').value.length;
+      const transportLen = document.getElementById('specTransport').value.length;
+      const pointsCount = appState.sellingPoints.length + appState.caveats.length;
+
+      if (buildingLen > 120 || transportLen > 90 || pointsCount > 5) {
+        setTextDensity('compact');
+      } else {
+        setTextDensity('normal');
+      }
+
+      showToast('✨ AI ตรวจสอบและจัดระเบียบสัดส่วนสไลด์เรียบร้อย');
+    }
+
+    function setupInlineEditing() {
+      const slide = document.getElementById('presentationSlide');
+
+      function saveInlineText(el) {
+        const value = el.innerText.replace(/\r/g, '').replace(/\u00a0/g, ' ').trim();
+        const inputId = inlineTextInputs[el.id];
+        if (inputId) document.getElementById(inputId).value = value;
+
+        if (el.dataset.inlineTag) {
+          const tag = appState.tags.find(item => item.id === Number(el.dataset.inlineTag));
+          if (tag) tag.text = value;
+          const sidebarInput = document.querySelector(`#tagsListEditor input[data-tag-id="${el.dataset.inlineTag}"]`);
+          if (sidebarInput) sidebarInput.value = value;
+        }
+
+        if (el.dataset.inlineList) {
+          const listId = el.dataset.inlineList === 'sellingPoints' ? 'displaySellingPointsList' : 'displayCaveatsList';
+          const inputId = el.dataset.inlineList === 'sellingPoints' ? 'inputSellingPoints' : 'inputCaveats';
+          const items = [...document.querySelectorAll(`#${listId} [data-inline-list]`)].map(item => item.innerText.trim());
+          appState[el.dataset.inlineList] = items;
+          document.getElementById(inputId).value = items.join('\n');
+        }
+        return value;
+      }
+
+      slide.addEventListener('input', event => {
+        const el = event.target.closest('[contenteditable="true"]');
+        if (el && slide.contains(el)) saveInlineText(el);
+      });
+      slide.addEventListener('focusout', event => {
+        const el = event.target.closest('[contenteditable="true"]');
+        if (!el || !slide.contains(el)) return;
+        el.textContent = saveInlineText(el);
+      });
+      slide.addEventListener('keydown', event => {
+        if (event.key !== 'Enter') return;
+        const el = event.target.closest('[contenteditable="true"]');
+        if (!el || ['displayBuilding', 'displayTransport'].includes(el.id)) return;
+        event.preventDefault();
+        el.blur();
+      });
+      slide.addEventListener('paste', event => {
+        const el = event.target.closest('[contenteditable="true"]');
+        if (!el) return;
+        event.preventDefault();
+        const multiline = ['displayBuilding', 'displayTransport'].includes(el.id);
+        const pasted = event.clipboardData.getData('text/plain');
+        document.execCommand('insertText', false, multiline ? pasted : pasted.replace(/\s*\n\s*/g, ' '));
+      });
+    }
+
+    function toggleInlineEdit() {
+      if (appState.inlineEditMode && document.activeElement?.isContentEditable) document.activeElement.blur();
+      appState.inlineEditMode = !appState.inlineEditMode;
+      Object.keys(inlineTextInputs).forEach(id => {
+        document.getElementById(id).contentEditable = String(appState.inlineEditMode);
+      });
+      document.querySelectorAll('#presentationSlide [data-inline-tag], #presentationSlide [data-inline-list]').forEach(el => {
+        el.contentEditable = String(appState.inlineEditMode);
+      });
+      document.getElementById('presentationSlide').classList.toggle('is-inline-editing', appState.inlineEditMode);
+
+      const btnText = document.getElementById('inlineEditText');
+      const btn = document.getElementById('inlineEditBtn');
+      btn.setAttribute('aria-pressed', String(appState.inlineEditMode));
+
+      if (appState.inlineEditMode) {
+        btnText.textContent = 'กำลังพิมพ์บนสไลด์';
+        btn.classList.add('bg-amber-500/20', 'border-amber-400', 'text-amber-300');
+        showToast('เปิดโหมดคลิกพิมพ์: คลิกข้อความบนสไลด์เพื่อแก้ไขได้ทันที');
+      } else {
+        btnText.textContent = 'คลิกพิมพ์บนสไลด์';
+        btn.classList.remove('bg-amber-500/20', 'border-amber-400', 'text-amber-300');
+        showToast('ปิดโหมดคลิกพิมพ์');
+      }
+    }
+
+    function applyTheme(themeName) {
+      appState.currentTheme = themeName;
+      const vBar = document.getElementById('themeVerticalBar');
+      const gpsBar = document.getElementById('themeGpsBar');
+      const title = document.getElementById('displayTitle');
+      const footerAccent = document.getElementById('themeFooterAccent');
+
+      if (themeName === 'corporate-yellow') {
+        vBar.className = 'w-1.5 h-11 bg-amber-400 rounded-full shrink-0';
+        gpsBar.className = 'w-full h-[12%] bg-[#081e3e] text-white rounded-md px-3 flex items-center justify-between shadow-sm';
+        title.style.color = '#0f2b5c';
+        footerAccent.className = 'w-2.5 h-5 bg-amber-400 rounded-sm';
+      } else if (themeName === 'modern-navy') {
+        vBar.className = 'w-1.5 h-11 bg-blue-600 rounded-full shrink-0';
+        gpsBar.className = 'w-full h-[12%] bg-slate-900 text-white rounded-md px-3 flex items-center justify-between shadow-sm';
+        title.style.color = '#1e3a8a';
+        footerAccent.className = 'w-2.5 h-5 bg-blue-600 rounded-sm';
+      } else if (themeName === 'emerald-green') {
+        vBar.className = 'w-1.5 h-11 bg-emerald-500 rounded-full shrink-0';
+        gpsBar.className = 'w-full h-[12%] bg-[#063a2a] text-white rounded-md px-3 flex items-center justify-between shadow-sm';
+        title.style.color = '#064e3b';
+        footerAccent.className = 'w-2.5 h-5 bg-emerald-500 rounded-sm';
+      } else if (themeName === 'luxury-red') {
+        vBar.className = 'w-1.5 h-11 bg-rose-600 rounded-full shrink-0';
+        gpsBar.className = 'w-full h-[12%] bg-[#3b0811] text-white rounded-md px-3 flex items-center justify-between shadow-sm';
+        title.style.color = '#881337';
+        footerAccent.className = 'w-2.5 h-5 bg-rose-600 rounded-sm';
+      }
+
+      showToast(`เปลี่ยนธีมเป็น: ${themeName}`);
+    }
+
+    /* AI Modal Functions */
+    function openAiModal() { document.getElementById('aiModal').classList.remove('hidden'); }
+    function closeAiModal() { document.getElementById('aiModal').classList.add('hidden'); }
+    function fillAiPrompt(text) { document.getElementById('aiPromptInput').value = text; }
+
+    async function runAiGeneration() {
+      const prompt = document.getElementById('aiPromptInput').value.trim();
+      if (!prompt) {
+        showToast('กรุณากรอกข้อมูลโครงการหรือเลือกเทมเพลต', true);
+        return;
+      }
+
+      const statusBox = document.getElementById('aiStatus');
+      const submitBtn = document.getElementById('aiSubmitBtn');
+      statusBox.classList.remove('hidden');
+      submitBtn.disabled = true;
+
+      const systemPrompt = `คุณเป็นผู้เชี่ยวชาญด้านการลงทุนอสังหาริมทรัพย์ระดับโลกและการจัดทำ Property Profile / One-Pager Pitch สำหรับเสนอผู้บริหารและนักลงทุน
+หน้าที่ของคุณคือวิเคราะห์ข้อมูลที่ผู้ใช้ให้มา แล้วส่งผลลัพธ์เป็น JSON ตามโครงสร้างที่กำหนดเท่านั้น โดยต้องคิดข้อมูลให้กระชับ ชัดเจน สมบูรณ์ และเป็นทางการ`;
+
+      const userQuery = `สร้างข้อมูลสไลด์อสังหาริมทรัพย์จากข้อมูลนี้: "${prompt}"
+ส่งคืนเป็น JSON object เท่านั้น:
+{
+  "title": "ชื่อแปลงที่ดินกระชับ",
+  "category": "หมวดหมู่ เช่น ที่ดินเพื่อการลงทุน / COMMERCIAL LAND",
+  "tags": [
+    {"text": "กลุ่มธุรกิจ 1", "isHighlighted": true},
+    {"text": "กลุ่มธุรกิจ 2", "isHighlighted": true},
+    {"text": "กลุ่มธุรกิจ 3", "isHighlighted": false},
+    {"text": "กลุ่มธุรกิจ 4", "isHighlighted": false}
+  ],
+  "specs": {
+    "area": "ขนาดที่ดิน เช่น 2-2-77 ไร่",
+    "building": "รายละเอียดอาคารแบบกระชับไม่เกิน 2 บรรทัด",
+    "electric": "ระบบไฟฟ้า เช่น 24 KV",
+    "water": "ระบบประปาและการจัดการน้ำ",
+    "telecom": "โครงสร้างโทรคมนาคมและไฟเบอร์",
+    "transport": "ระยะทางถึงถนนใหญ่ ทางด่วน หรือรถไฟฟ้า",
+    "zoning": "สีผังเมือง เช่น สีแดง (พาณิชยกรรม)",
+    "price": "ราคาประเมิน หรือ อัตราค่าเช่า",
+    "ownership": "สถานะกรรมสิทธิ์/โฉนด"
+  },
+  "sellingPoints": ["จุดขายข้อที่ 1", "จุดขายข้อที่ 2", "จุดขายข้อที่ 3"],
+  "caveats": ["ข้อจำกัดหรือข้อควรระวัง 1-2 ข้อ"]
+}`;
+
+      try {
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+        const payload = {
+          contents: [{ parts: [{ text: userQuery }] }],
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: { responseMimeType: "application/json" }
+        };
+
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error('API Request Failed');
+        const result = await response.json();
+        const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        const parsed = JSON.parse(jsonText);
+
+        if (parsed.title) document.getElementById('inputTitle').value = parsed.title;
+        if (parsed.category) document.getElementById('inputCategory').value = parsed.category;
+        
+        if (parsed.tags && Array.isArray(parsed.tags)) {
+          appState.tags = parsed.tags.map((t, idx) => ({
+            id: Date.now() + idx,
+            text: t.text || t,
+            isHighlighted: typeof t.isHighlighted === 'boolean' ? t.isHighlighted : (idx < 2)
+          }));
+          renderTagsEditor();
+          renderSlideTags();
+        }
+
+        if (parsed.specs) {
+          if (parsed.specs.area) document.getElementById('specArea').value = parsed.specs.area;
+          if (parsed.specs.building) document.getElementById('specBuilding').value = parsed.specs.building;
+          if (parsed.specs.electric) document.getElementById('specElectric').value = parsed.specs.electric;
+          if (parsed.specs.water) document.getElementById('specWater').value = parsed.specs.water;
+          if (parsed.specs.telecom) document.getElementById('specTelecom').value = parsed.specs.telecom;
+          if (parsed.specs.transport) document.getElementById('specTransport').value = parsed.specs.transport;
+          if (parsed.specs.zoning) document.getElementById('specZoning').value = parsed.specs.zoning;
+          if (parsed.specs.price) document.getElementById('specPrice').value = parsed.specs.price;
+          if (parsed.specs.ownership) document.getElementById('specOwnership').value = parsed.specs.ownership;
+        }
+
+        if (parsed.sellingPoints && Array.isArray(parsed.sellingPoints)) {
+          document.getElementById('inputSellingPoints').value = parsed.sellingPoints.join('\n');
+        }
+        if (parsed.caveats && Array.isArray(parsed.caveats)) {
+          document.getElementById('inputCaveats').value = parsed.caveats.join('\n');
+        }
+
+        syncData();
+        syncPoints();
+        autoFitAndArrange();
+        closeAiModal();
+        showToast('✨ AI สร้างข้อมูลสไลด์และจัดวางเรียบร้อยแล้ว!');
+
+      } catch (err) {
+        showToast('ไม่สามารถเชื่อมต่อ AI ได้ในขณะนี้', true);
+      } finally {
+        statusBox.classList.add('hidden');
+        submitBtn.disabled = false;
+      }
+    }
+
+    /* AI Condense Specs Helper */
+    async function condenseSpecsWithAI() {
+      const bText = document.getElementById('specBuilding').value;
+      const tText = document.getElementById('specTransport').value;
+      showToast('🤖 AI กำลังย่อข้อความสเปกให้กระชับ...');
+
+      const query = `ช่วยย่อข้อความสเปกอสังหาฯ ต่อไปนี้ให้กระชับ คมคาย ได้ใจความสำคัญครบถ้วนเพื่อใส่ในสไลด์ 16:9 
+อาคาร: "${bText}"
+การเดินทาง: "${tText}"
+ส่งคืนเป็น JSON: {"building": "...", "transport": "..."}`;
+
+      try {
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: query }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+
+        const data = await res.json();
+        const parsed = JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+
+        if (parsed.building) document.getElementById('specBuilding').value = parsed.building;
+        if (parsed.transport) document.getElementById('specTransport').value = parsed.transport;
+        syncData();
+        showToast('✨ ย่อข้อความเรียบร้อย');
+      } catch (e) {
+        showToast('ไม่สามารถเชื่อมต่อ AI ได้', true);
+      }
+    }
+
+    async function aiPolishPoints(type) {
+      const isSelling = type === 'selling';
+      const inputEl = document.getElementById(isSelling ? 'inputSellingPoints' : 'inputCaveats');
+      const text = inputEl.value.trim();
+
+      if (!text) {
+        showToast('กรุณากรอกข้อความก่อนขัดเกลา', true);
+        return;
+      }
+
+      showToast(`🤖 AI กำลังขัดเกลา ${isSelling ? 'จุดขาย' : 'ข้อควรระวัง'}...`);
+
+      const query = `ช่วยขัดเกลาและเรียบเรียง ${isSelling ? 'จุดขาย (Key Selling Points)' : 'ข้อจำกัด/ข้อควรระวัง'} ต่อไปนี้ให้เป็นภาษาทางการ ชัดเจน น่าเชื่อถือสำหรับผู้บริหารระดับสูง 
+ส่งคืนเป็นข้อความแต่ละข้อ บรรทัดละ 1 ข้อ ไม่ต้องมีเครื่องหมายหัวข้อ:\n${text}`;
+
+      try {
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+        const res = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: query }] }] })
+        });
+
+        const data = await res.json();
+        const polished = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (polished) {
+          inputEl.value = polished.trim();
+          syncPoints();
+          showToast('✨ ขัดเกลาข้อความเรียบร้อย');
+        }
+      } catch (e) {
+        showToast('ไม่สามารถเชื่อมต่อ AI ได้', true);
+      }
+    }
+
+    /* Export Native PowerPoint Presentation (.pptx) */
+    async function downloadAsPPTX() {
+      const btn = document.getElementById('btnExportPptx');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังสร้าง PPTX...';
+      btn.disabled = true;
+
+      try {
+        const pptx = new PptxGenJS();
+        pptx.layout = 'LAYOUT_16x9'; // 16:9 standard
+
+        const slide = pptx.addSlide();
+        slide.background = { color: "FFFFFF" };
+
+        const titleText = document.getElementById('inputTitle').value || 'Property Pitch';
+        const categoryText = document.getElementById('inputCategory').value || 'PROPERTY';
+        const coordsText = document.getElementById('displayCoords').textContent;
+        const mapUrl = document.getElementById('displayCoordsLink').href;
+
+        // Header Vertical accent bar
+        slide.addShape(pptx.ShapeType.rect, {
+          x: 0.5, y: 0.35, w: 0.08, h: 0.65,
+          fill: { color: "FFCC00" },
+          line: { color: "FFCC00" }
+        });
+
+        // Sub-title
+        slide.addText(categoryText.toUpperCase(), {
+          x: 0.7, y: 0.35, w: 5.0, h: 0.2,
+          fontSize: 8, fontFace: 'Prompt', color: '888888', bold: true
+        });
+
+        // Title
+        slide.addText(titleText, {
+          x: 0.7, y: 0.52, w: 5.5, h: 0.45,
+          fontSize: 20, fontFace: 'Prompt', color: '0F2B5C', bold: true
+        });
+
+        // Target Tags (Right of Header)
+        slide.addText("กลุ่มธุรกิจที่นำเสนอ (TARGET BUSINESS)", {
+          x: 6.2, y: 0.35, w: 3.3, h: 0.2,
+          fontSize: 7.5, fontFace: 'Prompt', color: '888888', align: 'right', bold: true
+        });
+
+        let tagX = 6.0;
+        appState.tags.forEach((tag) => {
+          const tagW = Math.max(0.8, tag.text.length * 0.08);
+          slide.addShape(pptx.ShapeType.roundRect, {
+            x: tagX, y: 0.58, w: tagW, h: 0.28,
+            rectRadius: 0.14,
+            fill: { color: tag.isHighlighted ? "081E3E" : "FFFFFF" },
+            line: { color: tag.isHighlighted ? "081E3E" : "CCCCCC", width: 1 }
+          });
+          slide.addText((tag.isHighlighted ? "✓ " : "") + tag.text, {
+            x: tagX, y: 0.58, w: tagW, h: 0.28,
+            fontSize: 7.5, fontFace: 'Prompt',
+            color: tag.isHighlighted ? "FFFFFF" : "333333",
+            align: 'center', valign: 'middle', bold: tag.isHighlighted
+          });
+          tagX += tagW + 0.1;
+        });
+
+        // Top border divider
+        slide.addShape(pptx.ShapeType.line, {
+          x: 0.5, y: 1.05, w: 9.0, h: 0,
+          line: { color: "EEEEEE", width: 1 }
+        });
+
+        // Capture slide images to include in PPTX
+        const satImg = document.getElementById('imgSatellite').src;
+        const photo1 = document.getElementById('imgPhoto1').src;
+        const photo2 = document.getElementById('imgPhoto2').src;
+        const photo3 = document.getElementById('imgPhoto3').src;
+
+        // Add Satellite Map Box
+        slide.addImage({ data: satImg, x: 0.5, y: 1.2, w: 3.8, h: 2.15 });
+
+        // Add 3 Photos
+        slide.addImage({ data: photo1, x: 0.5, y: 3.45, w: 1.22, h: 1.0 });
+        slide.addImage({ data: photo2, x: 1.79, y: 3.45, w: 1.22, h: 1.0 });
+        slide.addImage({ data: photo3, x: 3.08, y: 3.45, w: 1.22, h: 1.0 });
+
+        // Add GPS bar with Google Maps hyperlink
+        slide.addShape(pptx.ShapeType.roundRect, {
+          x: 0.5, y: 4.55, w: 3.8, h: 0.45,
+          rectRadius: 0.05, fill: { color: "081E3E" }
+        });
+        slide.addText(`พิกัด (LOCATION): ${coordsText}`, {
+          x: 0.65, y: 4.57, w: 2.5, h: 0.4,
+          fontSize: 8, fontFace: 'Prompt', color: 'FFCC00', bold: true,
+          hyperlink: { url: mapUrl }
+        });
+        slide.addText(`เปิด Google Maps ↗`, {
+          x: 3.1, y: 4.62, w: 1.1, h: 0.3,
+          fontSize: 7.5, fontFace: 'Prompt', color: '000000', bold: true,
+          fill: { color: "FFCC00" }, align: 'center', valign: 'middle',
+          hyperlink: { url: mapUrl }
+        });
+
+        // Right Column: Property Profile Table
+        slide.addText("ข้อมูลพื้นที่ (Property Profile)", {
+          x: 4.6, y: 1.15, w: 4.9, h: 0.25,
+          fontSize: 9, fontFace: 'Prompt', color: '0F2B5C', bold: true
+        });
+
+        const specsRows = [
+          ['ขนาดพื้นที่', document.getElementById('specArea').value],
+          ['อาคาร', document.getElementById('specBuilding').value],
+          ['ไฟฟ้า', document.getElementById('specElectric').value],
+          ['ประปา / น้ำท่วม', document.getElementById('specWater').value],
+          ['โทรคมนาคม', document.getElementById('specTelecom').value],
+          ['คมนาคม', document.getElementById('specTransport').value],
+          ['สีผังเมือง', document.getElementById('specZoning').value],
+          ['ราคา / อัตรา', document.getElementById('specPrice').value],
+          ['กรรมสิทธิ์', document.getElementById('specOwnership').value]
+        ];
+
+        let tableY = 1.42;
+        specsRows.forEach((row, i) => {
+          const isZebra = i % 2 === 0;
+          slide.addShape(pptx.ShapeType.rect, {
+            x: 4.6, y: tableY, w: 4.9, h: 0.23,
+            fill: { color: isZebra ? "F8FAFC" : "FFFFFF" },
+            line: { color: "F1F5F9", width: 0.5 }
+          });
+          slide.addText(row[0], {
+            x: 4.7, y: tableY, w: 1.3, h: 0.23,
+            fontSize: 7.5, fontFace: 'Prompt', color: '334155', bold: true, valign: 'middle'
+          });
+          slide.addText(row[1], {
+            x: 6.0, y: tableY, w: 3.4, h: 0.23,
+            fontSize: 7.5, fontFace: 'Sarabun', color: row[0] === 'สีผังเมือง' ? 'B91C1C' : '1E293B',
+            bold: row[0] === 'สีผังเมือง' || row[0] === 'ขนาดพื้นที่', valign: 'middle'
+          });
+          tableY += 0.23;
+        });
+
+        // Bottom Highlight Cards: Selling Points & Caveats
+        const cardY = 3.65;
+        // Selling points card
+        slide.addShape(pptx.ShapeType.roundRect, {
+          x: 4.6, y: cardY, w: 2.8, h: 1.35,
+          rectRadius: 0.05, fill: { color: "FFFFFF" }, line: { color: "DBEAFE", width: 1 }
+        });
+        slide.addText("★ จุดขาย (Key Selling Points)", {
+          x: 4.7, y: cardY + 0.05, w: 2.6, h: 0.22,
+          fontSize: 8, fontFace: 'Prompt', color: '0F2B5C', bold: true
+        });
+        const spBulletText = appState.sellingPoints.map(p => `• ${p}`).join('\n');
+        slide.addText(spBulletText, {
+          x: 4.7, y: cardY + 0.28, w: 2.6, h: 1.0,
+          fontSize: 7, fontFace: 'Sarabun', color: '334155', lineSpacingMultiple: 1.1
+        });
+
+        // Caveats card
+        slide.addShape(pptx.ShapeType.roundRect, {
+          x: 7.5, y: cardY, w: 2.0, h: 1.35,
+          rectRadius: 0.05, fill: { color: "FFFBEB" }, line: { color: "FDE68A", width: 1 }
+        });
+        slide.addText("⚠ ข้อจำกัด / ข้อควรระวัง", {
+          x: 7.6, y: cardY + 0.05, w: 1.8, h: 0.22,
+          fontSize: 8, fontFace: 'Prompt', color: '92400E', bold: true
+        });
+        const cvBulletText = appState.caveats.map(c => `• ${c}`).join('\n');
+        slide.addText(cvBulletText, {
+          x: 7.6, y: cardY + 0.28, w: 1.8, h: 1.0,
+          fontSize: 7, fontFace: 'Sarabun', color: '451A03', lineSpacingMultiple: 1.1
+        });
+
+        // Footer
+        slide.addText(document.getElementById('inputFooter').value, {
+          x: 4.6, y: 5.15, w: 4.5, h: 0.2,
+          fontSize: 7, fontFace: 'Prompt', color: '94A3B8', align: 'right'
+        });
+
+        const filename = (titleText || 'property-pitch').toLowerCase().replace(/\s+/g, '-') + '.pptx';
+        await pptx.writeFile({ fileName: filename });
+        showToast('🎉 ส่งออกไฟล์ PowerPoint (.pptx) สำเร็จ!');
+
+      } catch (err) {
+        showToast('เกิดข้อผิดพลาดในการสร้างไฟล์ PowerPoint: ' + err.message, true);
+      } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+      }
+    }
+
+    /* Export High Resolution PNG Image */
+    function downloadAsImage() {
+      const slide = document.getElementById('presentationSlide');
+      showToast('กำลังประมวลผลรูปภาพความละเอียดสูง (Retina PNG)...');
+
+      const wasEditable = appState.inlineEditMode;
+      if (wasEditable) toggleInlineEdit();
+
+      html2canvas(slide, {
+        scale: 2.5,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      }).then(canvas => {
+        const link = document.createElement('a');
+        const filename = (document.getElementById('inputTitle').value || 'property-pitch')
+          .toLowerCase()
+          .replace(/\s+/g, '-') + '-profile.png';
+        
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+
+        if (wasEditable) toggleInlineEdit();
+        showToast('บันทึกรูปภาพสไลด์สำเร็จ!');
+      }).catch(err => {
+        if (wasEditable) toggleInlineEdit();
+        showToast('เกิดข้อผิดพลาดในการดาวน์โหลดรูปภาพ', true);
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.vite/
+*.log
+.env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+artifacts/
+.agents/
+.claude/
+.codex/
+skills-lock.json
+/*-profile.png
