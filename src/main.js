@@ -1,4 +1,6 @@
 import { defineCustomElements } from '@ionic/core/loader';
+import { defineCustomElements as definePwaElements } from '@ionic/pwa-elements/loader';
+import { Camera } from '@capacitor/camera';
 import '@ionic/core/css/core.css';
 import '@ionic/core/css/normalize.css';
 import '@ionic/core/css/structure.css';
@@ -17,6 +19,7 @@ import './style.css';
 import './studio-theme.css';
 import './reference-slide.css';
 defineCustomElements(window);
+definePwaElements(window);
 let data = structuredClone(defaults);
 try { const saved=JSON.parse(localStorage.getItem('nt-studio')); if(saved && typeof saved==='object') for(const key of Object.keys(defaults)) {if(typeof saved[key]===typeof defaults[key]) data[key]=saved[key];} } catch {}
 migrateLegacyPointCopy(data);
@@ -131,6 +134,34 @@ document.querySelector('#zoom-out').onclick=()=>changeZoom(zoomLevel-0.1);
 document.querySelector('#zoom-reset').onclick=()=>changeZoom(1);
 document.querySelector('#zoom-in').onclick=()=>changeZoom(zoomLevel+0.1);
 function toast(message){ const el=document.querySelector('#toast');el.textContent=message;el.classList.add('visible');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.classList.remove('visible'),3500); }
+async function useImage(key, file){
+  if(file.size>5*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){
+    toast('เลือกรูป JPG, PNG หรือ WebP ไม่เกิน 5 MB');
+    return;
+  }
+  const image=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+  data[key]=image;
+  if(tab==='media')renderForm();
+  renderSlide();
+  markDirty();
+}
+async function takePicture(key,button){
+  button.disabled=true;
+  try{
+    const photo=await Camera.takePhoto({quality:85,saveToGallery:false});
+    if(!photo.webPath)throw new Error('Camera returned no image');
+    const response=await fetch(photo.webPath);
+    if(!response.ok)throw new Error('Cannot read camera image');
+    await useImage(key,await response.blob());
+  }catch(error){
+    if(!/cancelled|canceled/i.test(error?.message||''))toast('ถ่ายรูปไม่สำเร็จ กรุณาอนุญาตการใช้กล้องหรือลองอัปโหลดรูป');
+  }finally{button.disabled=false;}
+}
 function preparePrint(){fitSlide();requestAnimationFrame(()=>window.print());}
 function save(){try{localStorage.setItem('nt-studio',JSON.stringify(data));document.querySelector('#save-status').innerHTML=icon('check')+' บันทึกแล้ว';refreshIcons();toast('บันทึกฉบับร่างในเบราว์เซอร์แล้ว');}catch{toast('พื้นที่เก็บข้อมูลไม่พอ ลองใช้รูปภาพที่มีขนาดเล็กลง');}}
 function changeTab(next){tab=next;document.querySelectorAll('[data-tab]').forEach(el=>{el.classList.toggle('active',el.dataset.tab===tab);el.setAttribute('aria-pressed',el.dataset.tab===tab);});renderForm();}
@@ -162,6 +193,8 @@ document.addEventListener('click',e=>{
   }
   const btn=e.target.closest('button');
   if(!btn)return;
+  if(btn.dataset.selectUpload){document.querySelector(`[data-upload="${btn.dataset.selectUpload}"]`)?.click();return;}
+  if(btn.dataset.camera){takePicture(btn.dataset.camera,btn);return;}
   if(btn.dataset.tab){changeTab(btn.dataset.tab);return;}
   if(btn.dataset.theme){data.theme=btn.dataset.theme;renderForm();renderSlide();markDirty();return;}
   if(btn.dataset.reset){data[btn.dataset.reset]=defaults[btn.dataset.reset];renderForm();renderSlide();markDirty();return;}
@@ -177,10 +210,7 @@ document.addEventListener('change',async e=>{
   if(!key)return;
   const file=e.target.files[0];
   if(!file)return;
-  if(file.size>5*1024*1024||!['image/jpeg','image/png','image/webp'].includes(file.type)){toast('เลือกรูป JPG, PNG หรือ WebP ไม่เกิน 5 MB');return;}
-  const reader=new FileReader();
-  reader.onload=()=>{data[key]=reader.result;renderForm();renderSlide();markDirty();};
-  reader.readAsDataURL(file);
+  try{await useImage(key,file);}catch{toast('อ่านไฟล์รูปไม่สำเร็จ กรุณาลองอีกครั้ง');}
 });document.querySelector('#save').addEventListener('click',save);
 document.querySelector('#tip-media').onclick=()=>{changeTab('media');document.querySelector('.mobile-view').value='edit';document.querySelector('.workspace').dataset.view='edit';};
 document.querySelector('.mobile-view').addEventListener('ionChange',e=>{document.querySelector('.workspace').dataset.view=e.detail.value;requestAnimationFrame(fitSlide);});

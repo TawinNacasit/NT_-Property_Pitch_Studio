@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/profile-estate': {
-          target: env.API_PROXY_TARGET || 'http://localhost:3000',
+          target: env.API_PROXY_TARGET || 'https://ntestate.ntplc.co.th',
           changeOrigin: true,
         },
       },

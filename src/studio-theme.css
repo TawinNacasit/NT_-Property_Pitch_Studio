@@ -354,6 +354,15 @@ dialog{background:#19263a;color:#f0f4fa;border:1px solid #42516a}
 #app[data-ui-theme=light] .map-open-link:hover{background:#e5edf5;border-color:#95a9be;color:#102b4a}
 #app[data-ui-theme=light] .media-card{border-color:#dce5ee}
 #app[data-ui-theme=light] .media-card h4{color:#152a45}
+
+.image-choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.image-choice{display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:8px;border:1px solid #52627a;border-radius:7px;background:#111d30;color:#f4f7fb;font-size:12px}
+.image-choice:hover{border-color:#ffc629;background:#1b2b43}
+.image-choice svg{width:17px;height:17px}
+.image-help{margin:7px 0 12px;color:#9bacc1;font-family:'Sarabun',sans-serif;font-size:11px}
+#app[data-ui-theme=light] .image-choice{border-color:#9eb0c4;background:#f8fafc;color:#203955}
+#app[data-ui-theme=light] .image-choice:hover{border-color:#234e70;background:#edf3f9}
+#app[data-ui-theme=light] .image-help{color:#63778f}
 #app[data-ui-theme=light] .tag-editor-row button{background:#f5f8fb;border-color:#cbd8e6;color:#203955}
 @media print{
   @page{size:landscape;margin:0}

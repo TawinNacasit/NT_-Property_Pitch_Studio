@@ -107,7 +107,11 @@ assert.match(await page.locator('#slide').getAttribute('class'),/compact-density
 await page.locator('[data-field=footerRight]').fill('เอกสารภายใน');
 assert.equal(await page.locator('.slide-footer span').last().textContent(),'เอกสารภายใน');
 await page.locator('[data-tab=media]').click();
-await page.locator('#photo-upload').setInputFiles('public/assets/exterior.jpg');
+assert.equal(await page.locator('[data-camera]').count(),5,'Every image slot should offer a camera');
+assert.equal(await page.locator('[data-select-upload]').count(),5,'Every image slot should offer file upload');
+const chooserPromise=page.waitForEvent('filechooser');
+await page.locator('[data-select-upload=photo]').click();
+await (await chooserPromise).setFiles('public/assets/exterior.jpg');
 await page.waitForFunction(()=>document.querySelector('#slide img').src.startsWith('data:'));
 await page.locator('[data-reset=photo]').click();
 await page.locator('[data-upload=photo1]').setInputFiles('public/assets/exterior.jpg');

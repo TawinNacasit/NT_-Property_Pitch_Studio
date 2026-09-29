@@ -14,13 +14,15 @@ Open http://127.0.0.1:5173
 
 The entry page (also available at `/login`) requires username and password. Successful login verifies the JWT with `/auth/me` before opening the studio. Logout clears the tab session. Passwords are never persisted; the token is kept in sessionStorage and verified again on reload. API authorization must also be enforced by the backend.
 
-The local `.env` uses the same-origin `/profile-estate` path. Start the backend separately on port 3000; Vite proxies that path to `API_PROXY_TARGET`, which defaults to `http://localhost:3000`. To use another local backend, set `API_PROXY_TARGET` in `.env.local` and restart Vite. Production hosting must also route `/profile-estate` to the backend. No backend or demo login is included in this UI repository.
+During local development, browser requests use the same-origin `/profile-estate` path. Vite proxies that path to `https://ntestate.ntplc.co.th` by default. Set `API_PROXY_TARGET` in `.env.local` and restart Vite to use a different backend. Production builds use `https://ntestate.ntplc.co.th/profile-estate` directly through `.env.production`; the API must allow the deployed frontend origin through CORS. No backend or demo login is included in this UI repository.
 
 Requests follow `docs/profile_property.md`: `POST /auth/login` with `{ username, password }`, and `GET /auth/me` with `Authorization: Bearer <token>`. The backend currently returns `{ success: true, token, user }`; the adapter also accepts `{ success: true, data: { token } }`.
 
 Public registration is intentionally omitted: the docs list login and current-user endpoints only, and `docs/database.md` does not define account provisioning. Contacting the administrator is the proposed account-access flow, not a documented provisioning API. Password recovery shows administrator guidance because no reset endpoint or support contact is specified.
 
 Run `node scripts/check-login.mjs` with the dev server running to test login behavior against mocked API responses, including invalid credentials, network errors, session expiry, logout and responsive layouts.
+
+In the image editor, each image slot offers **ถ่ายรูป** (take a photo) and **อัปโหลดรูป** (choose a file). Taking a photo uses Capacitor Camera with Ionic PWA Elements in the web app. Browsers need camera permission and a secure context (HTTPS or localhost). Both paths accept JPEG, PNG or WebP up to 5 MB and place the image in the browser draft. Native iOS/Android projects are not configured in this repository.
 
 ## Validate
 
