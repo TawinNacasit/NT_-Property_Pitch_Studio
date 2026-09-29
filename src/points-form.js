@@ -31,6 +31,6 @@ export function pointsFormMarkup(data) {
     ${pointCard('caveats','ข้อจำกัด / ข้อควรระวัง','triangle-alert','ขึ้นบรรทัดใหม่ 1 บรรทัดต่อ 1 ข้อ (แนะนำ 1–3 ข้อ)',3)}
     <p id="points-ai-note" class="points-ai-note">AI ขัดเกลายังไม่พร้อมใช้งาน เนื่องจากยังไม่ได้เชื่อมต่อบริการ AI</p>
     <section class="form-section points-card">
-      <label class="field"><span>ข้อความท้ายสไลด์ (Footer)</span><input data-field="footerRight" value="${esc(data.slideLabels?.footerRight ?? 'NT Property Studio')}"></label>
+      <label class="field"><span>ข้อความท้ายสไลด์ (Footer)</span><input data-field="footerRight" value="${esc(data.slideLabels?.footerRight ?? '© National Telecom All Rights Reserved')}"></label>
     </section>`;
 }

@@ -1,5 +1,6 @@
 export const defaults = {
-  title: 'ชุมสายพระโขนง', category: 'ชื่อพื้นที่ / PROPERTY', district: 'พระโขนง, กรุงเทพมหานคร',
+  propertyCode: 'NT-PKN-001', cdgId: '101',
+  title: 'ชุมสายพระโขนง', category: 'ชื่อผืนที่ / PROPERTY', district: 'พระโขนง, กรุงเทพมหานคร',
   area: '2-2-77.00 ไร่', building: 'อาคาร คสล. เก่า (3ชั้น) พื้นที่รวม 2,270 ตรม. ว่างทั้งหลัง • อาคารชุมสายใหม่ 7 ชั้น พื้นที่รวม 6,780.88 ตรม. ว่าง ชั้น 4 พื้นที่ 925.5 ตรม. • รับ นน. 400-1,500 กก./ตรม.',
   electric: 'ระบบสายส่งผ่านหน้าที่ดิน 24 KV รองรับโหลดขนาดใหญ่', water: 'การประปานครหลวง • ปลอดน้ำท่วม มีระบบระบายน้ำล้อมรอบ',
   telecom: 'Fiber NT ถึงอาคาร • Carrier-neutral 2 เส้นทางหลัก', transport: '200 ม. จากสถานีรถไฟฟ้าอ่อนนุช • 350 ม. จากจุดขึ้นลงทางพิเศษฉลองรัช • 1.5 กม. จากจุดขึ้นลงทางพิเศษเฉลิมมหานคร',
@@ -20,6 +21,14 @@ export const defaults = {
   dimLeft: 'ลึก 100 ม.', dimRight: 'ลึก 100 ม.',
   slideLabels: {},
 };
+export function blankProperty() {
+  const data = structuredClone(defaults);
+  for (const key of ['propertyCode', 'title', 'lat', 'lng', 'mapUrl', 'district', 'area', 'building', 'electric', 'water', 'telecom', 'transport', 'zoning', 'ownership', 'price', 'points', 'caveats', 'photo', 'photo1', 'photo2', 'photo3', 'caption1', 'caption2', 'caption3', 'logoPhoto']) data[key] = '';
+  data.cdgId = '0';
+  data.tags = [];
+  data.tagHighlights = [];
+  return data;
+}
 export const fields = [
   ['area','ขนาดพื้นที่','scan'], ['building','อาคารและสิ่งปลูกสร้าง','building-2'],
   ['electric','ระบบไฟฟ้า','zap'], ['water','ประปา / ระบบระบายน้ำ','droplets'],

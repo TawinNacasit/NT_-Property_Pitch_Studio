@@ -10,33 +10,47 @@ import '@fontsource/prompt/latin-400.css';
 import '@fontsource/prompt/latin-600.css';
 import '@fontsource/sarabun/thai-400.css';
 import { createIcons, icons } from 'lucide';
-import { defaults, fields, escapeHTML as esc, lines, validateData, migrateLegacyPointCopy } from './model';
+import { defaults, blankProperty, fields, escapeHTML as esc, lines, validateData, migrateLegacyPointCopy } from './model';
 import { createInlineEditor } from './inline-edit';
 import { formMarkup } from './forms';
 import { slideMarkup, mapHref } from './slide';
 import { exportEditablePptx } from './export-pptx';
+import { listProperties, loadProperty, saveProperty } from './property-api';
 import './style.css';
 import './studio-theme.css';
 import './reference-slide.css';
 defineCustomElements(window);
 definePwaElements(window);
-let data = structuredClone(defaults);
-try { const saved=JSON.parse(localStorage.getItem('nt-studio')); if(saved && typeof saved==='object') for(const key of Object.keys(defaults)) {if(typeof saved[key]===typeof defaults[key]) data[key]=saved[key];} } catch {}
-migrateLegacyPointCopy(data);
-if(data.theme==='navy')data.theme='corporate-yellow';
-if(data.theme==='blue')data.theme='modern-navy';
-if(!Array.isArray(data.tags))data.tags=structuredClone(defaults.tags);
-if(!Array.isArray(data.tagHighlights))data.tagHighlights=structuredClone(defaults.tagHighlights);
+let data = blankProperty();
+let currentRecord = null;
+const extrasKey = id => `nt-studio-extras-${id}`;
+function restoreExtras(id){
+  try{
+    const extras=JSON.parse(localStorage.getItem(extrasKey(id)));
+    if(extras && typeof extras==='object'){
+      if(typeof extras.district==='string')data.district=extras.district;
+      if(extras.slideLabels && typeof extras.slideLabels==='object'){
+        const footer=data.slideLabels.footerRight;
+        const caption=data.slideLabels.photoCaption;
+        Object.assign(data.slideLabels,extras.slideLabels);
+        data.slideLabels.footerRight=footer;
+        if(caption)data.slideLabels.photoCaption=caption;
+      }
+    }
+  }catch{}
+}
+function saveExtras(id,extra){try{localStorage.setItem(extrasKey(id),JSON.stringify(extra));}catch{}}
 let tab='profile';
 const icon = name => '<i data-lucide="'+name+'" aria-hidden="true"></i>';
 const logo = '<span class="nt-mark"><b></b><b></b><b></b></span><strong>nt</strong>';
 document.querySelector('#app').innerHTML = `
 <header class="app-header"><a class="brand" href="/" aria-label="NT Property Studio หน้าหลัก">${logo}<span class="brand-divider"></span><span>Property Studio<small>พื้นที่สร้างโอกาส ให้ทุกทรัพย์สิน</small></span></a><div class="header-right"><span class="workspace-label">${icon('building-2')} พื้นที่ทำงานของคุณ</span><span class="avatar">NT</span></div></header>
-<div class="project-bar"><div><div class="breadcrumb">พื้นที่ทำงาน <span>/</span> สร้างสไลด์นำเสนอ</div><h1>นำเสนอทรัพย์สิน <span>อย่างมืออาชีพ</span></h1></div><div class="project-actions"><span id="save-status" role="status">${icon('check')} พร้อมแก้ไข</span><ion-button id="save" fill="outline">${icon('save')} บันทึกฉบับร่าง</ion-button><ion-button id="export" class="primary">${icon('download')} ส่งออกสไลด์</ion-button></div></div>
+<div class="project-bar"><div><div class="breadcrumb">พื้นที่ทำงาน <span>/</span> สร้างสไลด์นำเสนอ</div><h1>นำเสนอทรัพย์สิน <span>อย่างมืออาชีพ</span></h1><div class="property-picker"><label for="property-select">ทรัพย์สิน</label><select id="property-select" aria-label="เลือกทรัพย์สิน"><option value="">กำลังโหลดข้อมูล…</option></select><button id="new-property" type="button">+ สร้างทรัพย์สินใหม่</button><button id="import-legacy" type="button" hidden>นำเข้าฉบับร่างเดิม</button></div></div><div class="project-actions"><span id="save-status" role="status">กำลังโหลดข้อมูล…</span><ion-button id="save" fill="outline">${icon('save')} บันทึกข้อมูล</ion-button><ion-button id="export" class="primary">${icon('download')} ส่งออกสไลด์</ion-button></div></div>
 <ion-segment class="mobile-view" value="edit" aria-label="มุมมองพื้นที่ทำงาน"><ion-segment-button value="edit">แก้ไขข้อมูล</ion-segment-button><ion-segment-button value="preview">ตัวอย่างสไลด์</ion-segment-button></ion-segment>
-<main class="workspace" data-view="edit"><aside class="editor"><div class="editor-heading"><div><h2>รายละเอียดทรัพย์สิน</h2><p>เติมข้อมูล แล้วดูสไลด์เปลี่ยนไปพร้อมกัน</p></div><span class="edit-icon">${icon('sliders-horizontal')}</span></div><nav class="editor-tabs" aria-label="หมวดข้อมูล">${[['profile','building-2','ข้อมูล'],['points','list-checks','จุดเด่น'],['media','images','รูปภาพ'],['style','palette','รูปแบบ']].map(([id,ic,label])=>`<button data-tab="${id}" class="${id===tab?'active':''}" aria-pressed="${id===tab}">${icon(ic)}<span>${label}</span></button>`).join('')}</nav><div id="form-panel"></div><div class="editor-foot">${icon('shield-check')} ข้อมูลฉบับร่างเก็บในเบราว์เซอร์นี้</div></aside>
+<main class="workspace" data-view="edit"><aside class="editor"><div class="editor-heading"><div><h2>รายละเอียดทรัพย์สิน</h2><p>เติมข้อมูล แล้วดูสไลด์เปลี่ยนไปพร้อมกัน</p></div><span class="edit-icon">${icon('sliders-horizontal')}</span></div><nav class="editor-tabs" aria-label="หมวดข้อมูล">${[['profile','building-2','ข้อมูล'],['points','list-checks','จุดเด่น'],['media','images','รูปภาพ'],['style','palette','รูปแบบ']].map(([id,ic,label])=>`<button data-tab="${id}" class="${id===tab?'active':''}" aria-pressed="${id===tab}">${icon(ic)}<span>${label}</span></button>`).join('')}</nav><div id="form-panel"></div><div class="editor-foot">${icon('shield-check')} ข้อมูลทรัพย์สินบันทึกในระบบ • ข้อความตกแต่งสไลด์เก็บในเบราว์เซอร์นี้</div></aside>
 <section class="preview-area" aria-label="ตัวอย่างสไลด์"><div class="preview-toolbar"><div><span class="live-dot"></span><h2>ตัวอย่างสไลด์</h2><span class="aspect">16:9</span></div><div class="preview-actions"><button id="print-slide" class="text-button">${icon('printer')} <span>เตรียมพิมพ์</span></button><button id="expand" class="text-button">${icon('maximize-2')} <span>ขยายตัวอย่าง</span></button></div></div><div class="slide-stage"><div id="slide-holder"><article id="slide"></article></div></div><div class="preview-caption"><span>${icon('monitor')} สไลด์นำเสนอทรัพย์สิน</span><span>1 / 1</span></div><div class="workflow-tip"><span class="tip-icon">${icon('lightbulb')}</span><div><strong>ข้อมูลครบ สื่อสารได้ในหน้าเดียว</strong><p>เพิ่มจุดเด่นและภาพทรัพย์สิน เพื่อให้ผู้สนใจเห็นศักยภาพได้ชัดเจน</p></div><button id="tip-media" class="text-button">เพิ่มรูปภาพ ${icon('arrow-up-right')}</button></div><p class="sample-note">ข้อมูลและภาพตัวอย่างสำหรับจัดรูปแบบ • โปรดตรวจสอบก่อนนำเสนอ</p></section></main>
 <dialog id="export-dialog"><div class="dialog-heading"><h2>ส่งออกสไลด์</h2><button id="close-dialog" class="icon-button" aria-label="ปิด">${icon('x')}</button></div><p>เลือกไฟล์สำหรับนำเสนอหรือส่งต่อ</p><button class="export-choice" data-format="png">${icon('image')}<span><strong>รูปภาพ PNG</strong><small>ความละเอียดสูง พร้อมแชร์</small></span>${icon('chevron-right')}</button><button class="export-choice" data-format="pptx">${icon('presentation')}<span><strong>PowerPoint</strong><small>ข้อความและรูปภาพแก้ไขต่อได้</small></span>${icon('chevron-right')}</button><p id="export-status" role="status"></p></dialog><div id="toast" role="status"></div>`;
+document.querySelector('.editor-heading').after(document.querySelector('.property-picker'));
 const zoomControls = document.createElement('div');
 zoomControls.className = 'zoom-controls';
 zoomControls.setAttribute('role', 'group');
@@ -163,7 +177,56 @@ async function takePicture(key,button){
   }finally{button.disabled=false;}
 }
 function preparePrint(){fitSlide();requestAnimationFrame(()=>window.print());}
-function save(){try{localStorage.setItem('nt-studio',JSON.stringify(data));document.querySelector('#save-status').innerHTML=icon('check')+' บันทึกแล้ว';refreshIcons();toast('บันทึกฉบับร่างในเบราว์เซอร์แล้ว');}catch{toast('พื้นที่เก็บข้อมูลไม่พอ ลองใช้รูปภาพที่มีขนาดเล็กลง');}}
+async function save(){
+  const button=document.querySelector('#save');
+  if(button.disabled)return;
+  button.disabled=true;
+  document.querySelector('#save-status').textContent='กำลังบันทึก…';
+  try{
+    const extra={district:data.district,slideLabels:{...data.slideLabels}};
+    const result=await saveProperty(data,currentRecord);
+    currentRecord=result.record;
+    Object.assign(data,result.data);
+    saveExtras(currentRecord.id,extra);
+    restoreExtras(currentRecord.id);
+    try{await refreshPropertyList(currentRecord.id);}catch{document.querySelector('#property-select').value=String(currentRecord.id);}
+    renderForm();renderSlide();
+    document.querySelector('#save-status').innerHTML=icon('check')+' บันทึกในระบบแล้ว';refreshIcons();
+    toast('บันทึกข้อมูลทรัพย์สินแล้ว');
+  }catch(error){
+    if(error?.propertyId){
+      try{currentRecord=(await loadProperty(error.propertyId)).record;}catch{}
+    }
+    document.querySelector('#save-status').textContent='บันทึกไม่สำเร็จ';
+    toast(error?.message||'บันทึกไม่สำเร็จ กรุณาลองอีกครั้ง');
+  }finally{button.disabled=false;}
+}
+async function refreshPropertyList(selectedId){
+  const properties=await listProperties();
+  const select=document.querySelector('#property-select');
+  select.innerHTML='<option value="">เลือกทรัพย์สิน</option>'+properties.map(item=>`<option value="${Number(item.id)}">${esc(item.property_code)} — ${esc(item.title)}</option>`).join('');
+  select.value=selectedId?String(selectedId):'';
+  return properties;
+}
+async function selectProperty(id){
+  const select=document.querySelector('#property-select');
+  select.disabled=true;
+  document.querySelector('#save-status').textContent='กำลังโหลดข้อมูล…';
+  try{
+    const result=await loadProperty(id);
+    currentRecord=result.record;
+    Object.assign(data,result.data);
+    restoreExtras(id);
+    renderForm();renderSlide();
+    select.value=String(id);
+    document.querySelector('.sample-note').textContent='ข้อมูลทรัพย์สินจากระบบ • โปรดตรวจสอบก่อนนำเสนอ';
+    document.querySelector('#save-status').textContent='ข้อมูลจากระบบพร้อมแก้ไข';
+  }catch(error){
+    select.value=currentRecord?String(currentRecord.id):'';
+    document.querySelector('#save-status').textContent='โหลดข้อมูลไม่สำเร็จ';
+    toast(error?.message||'โหลดข้อมูลไม่สำเร็จ');
+  }finally{select.disabled=false;}
+}
 function changeTab(next){tab=next;document.querySelectorAll('[data-tab]').forEach(el=>{el.classList.toggle('active',el.dataset.tab===tab);el.setAttribute('aria-pressed',el.dataset.tab===tab);});renderForm();}
 const markDirty=()=>{document.querySelector('#save-status').textContent='ยังไม่ได้บันทึก';};
 function toggleTagHighlight(index){
@@ -212,6 +275,36 @@ document.addEventListener('change',async e=>{
   if(!file)return;
   try{await useImage(key,file);}catch{toast('อ่านไฟล์รูปไม่สำเร็จ กรุณาลองอีกครั้ง');}
 });document.querySelector('#save').addEventListener('click',save);
+document.querySelector('#property-select').addEventListener('change',event=>{if(event.target.value)selectProperty(Number(event.target.value));});
+document.querySelector('#new-property').addEventListener('click',()=>{
+  currentRecord=null;
+  Object.assign(data,blankProperty());
+  document.querySelector('#property-select').value='';
+  document.querySelector('#save-status').textContent='ทรัพย์สินใหม่ ยังไม่ได้บันทึก';
+  document.querySelector('.sample-note').textContent='ข้อมูลและภาพตัวอย่างสำหรับจัดรูปแบบ • โปรดตรวจสอบก่อนนำเสนอ';
+  changeTab('profile');renderSlide();
+});
+try{
+  if(localStorage.getItem('nt-studio'))document.querySelector('#import-legacy').hidden=false;
+}catch{}
+document.querySelector('#import-legacy').addEventListener('click',()=>{
+  try{
+    const saved=JSON.parse(localStorage.getItem('nt-studio'));
+    if(!saved||typeof saved!=='object')throw new Error();
+    const restored=structuredClone(defaults);
+    for(const key of Object.keys(defaults))if(typeof saved[key]===typeof defaults[key])restored[key]=saved[key];
+    migrateLegacyPointCopy(restored);
+    if(!['corporate-yellow','modern-navy','emerald-green','luxury-red'].includes(restored.theme))restored.theme='corporate-yellow';
+    if(!['center','top','bottom'].includes(restored.photoPos))restored.photoPos='center';
+    restored.propertyCode='';
+    restored.cdgId='0';
+    currentRecord=null;
+    Object.assign(data,restored);
+    document.querySelector('#property-select').value='';
+    document.querySelector('#save-status').textContent='นำเข้าฉบับร่างแล้ว กรุณาระบุรหัสทรัพย์สินและบันทึก';
+    changeTab('profile');renderSlide();
+  }catch{toast('อ่านฉบับร่างเดิมไม่สำเร็จ');}
+});
 document.querySelector('#tip-media').onclick=()=>{changeTab('media');document.querySelector('.mobile-view').value='edit';document.querySelector('.workspace').dataset.view='edit';};
 document.querySelector('.mobile-view').addEventListener('ionChange',e=>{document.querySelector('.workspace').dataset.view=e.detail.value;requestAnimationFrame(fitSlide);});
 document.querySelector('#expand').onclick=()=>{document.querySelector('.workspace').classList.toggle('expanded');document.querySelector('#expand span').textContent=document.querySelector('.workspace').classList.contains('expanded')?'กลับไปแก้ไข':'ขยายตัวอย่าง';requestAnimationFrame(fitSlide);};
@@ -248,6 +341,14 @@ const inlineEditor = createInlineEditor({
   markDirty: () => { document.querySelector('#save-status').textContent = 'ยังไม่ได้บันทึก'; },
 });
 renderForm();renderSlide();document.fonts.ready.then(fitSlide);
+refreshPropertyList().then(properties=>{
+  if(properties.length)selectProperty(properties[0].id);
+  else document.querySelector('#new-property').click();
+}).catch(error=>{
+  document.querySelector('#property-select').innerHTML='<option value="">โหลดรายการไม่สำเร็จ</option>';
+  document.querySelector('#save-status').textContent='เชื่อมต่อข้อมูลไม่สำเร็จ';
+  toast(error?.message||'เชื่อมต่อข้อมูลไม่สำเร็จ');
+});
 
 
 
