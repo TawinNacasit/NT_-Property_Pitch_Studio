@@ -1,6 +1,7 @@
 import { defineCustomElements } from '@ionic/core/loader';
 import { defineCustomElements as definePwaElements } from '@ionic/pwa-elements/loader';
 import { Camera } from '@capacitor/camera';
+import { Geolocation } from '@capacitor/geolocation';
 import '@ionic/core/css/core.css';
 import '@ionic/core/css/normalize.css';
 import '@ionic/core/css/structure.css';
@@ -229,6 +230,36 @@ async function selectProperty(id){
 }
 function changeTab(next){tab=next;document.querySelectorAll('[data-tab]').forEach(el=>{el.classList.toggle('active',el.dataset.tab===tab);el.setAttribute('aria-pressed',el.dataset.tab===tab);});renderForm();}
 const markDirty=()=>{document.querySelector('#save-status').textContent='ยังไม่ได้บันทึก';};
+async function setCoordinatesFrom(source,button){
+  const buttons=[...document.querySelectorAll('[data-coordinate-source]')];
+  buttons.forEach(item=>item.disabled=true);
+  try{
+    let latitude,longitude;
+    if(source==='current'){
+      const position=await Geolocation.getCurrentPosition({enableHighAccuracy:true,timeout:15000, maximumAge:0});
+      latitude=position.coords.latitude;
+      longitude=position.coords.longitude;
+    }else{
+      if(!currentRecord?.id)throw new Error('กรุณาเลือกทรัพย์สินที่บันทึกในระบบแล้ว');
+      const result=await loadProperty(currentRecord.id);
+      currentRecord=result.record;
+      latitude=result.data.lat;
+      longitude=result.data.lng;
+      if(latitude===''||longitude==='')throw new Error('ทรัพย์สินนี้ยังไม่มีพิกัดในระบบ');
+    }
+    data.lat=String(latitude);
+    data.lng=String(longitude);
+    document.querySelector('[data-field="lat"]').value=data.lat;
+    document.querySelector('[data-field="lng"]').value=data.lng;
+    const mapLink=document.querySelector('#map-preview-link');
+    if(mapLink)mapLink.href=mapHref(data);
+    markDirty();
+    renderSlide();
+  }catch(error){
+    const message=source==='current'&&error?.code===1?'กรุณาอนุญาตการเข้าถึงตำแหน่งของอุปกรณ์':error?.message||'ดึงพิกัดไม่สำเร็จ';
+    toast(message);
+  }finally{buttons.forEach(item=>item.disabled=!data.propertyId&&item.dataset.coordinateSource==='server');}
+}
 function toggleTagHighlight(index){
   data.tagHighlights[index]=!data.tagHighlights[index];
   if(tab==='points')renderForm();
@@ -256,6 +287,7 @@ document.addEventListener('click',e=>{
   }
   const btn=e.target.closest('button');
   if(!btn)return;
+  if(btn.dataset.coordinateSource){setCoordinatesFrom(btn.dataset.coordinateSource,btn);return;}
   if(btn.dataset.selectUpload){document.querySelector(`[data-upload="${btn.dataset.selectUpload}"]`)?.click();return;}
   if(btn.dataset.camera){takePicture(btn.dataset.camera,btn);return;}
   if(btn.dataset.tab){changeTab(btn.dataset.tab);return;}
