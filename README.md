@@ -10,6 +10,8 @@ npm run dev
 
 Open http://127.0.0.1:5173
 
+To load a satellite image on the slide from its GPS coordinates, enable Maps Static API with billing in Google Cloud, create a browser API key restricted to this website and that API, and set `VITE_GOOGLE_MAPS_API_KEY` in `.env.local` (or in the production build environment). Restart Vite after changing it. The image follows coordinate edits automatically until a user uploads or takes a replacement photo. Without a configured key or a working Google Maps request, use **ถ่ายรูป** or **อัปโหลดรูป** in the media editor. Google Maps imagery is served under the Maps Platform usage and billing terms.
+
 ## Login
 
 The entry page (also available at `/login`) requires username and password. Successful login verifies the JWT with `/auth/me` before opening the studio. Logout clears the tab session. Passwords are never persisted; the token is kept in sessionStorage and verified again on reload. API authorization must also be enforced by the backend.

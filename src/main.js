@@ -14,7 +14,8 @@ import { createIcons, icons } from 'lucide';
 import { defaults, blankProperty, fields, escapeHTML as esc, lines, validateData, migrateLegacyPointCopy } from './model';
 import { createInlineEditor } from './inline-edit';
 import { formMarkup } from './forms';
-import { slideMarkup, mapHref } from './slide';
+import { slideMarkup, mapHref, coordinateMapHref } from './slide';
+import { satelliteMapUrl, isSatelliteMapUrl, isSampleSatelliteImage } from './map-image';
 import { exportEditablePptx } from './export-pptx';
 import { listProperties, loadProperty, saveProperty } from './property-api';
 import './style.css';
@@ -108,6 +109,11 @@ function renderSlide(){
   const slide=document.querySelector('#slide');
   slide.className=`${data.theme}-theme ${data.density}-density`;
   slide.innerHTML=slideMarkup(data,fields,icon,logo);
+  const satelliteImage=slide.querySelector('.satellite-image');
+  satelliteImage?.addEventListener('error',()=>{
+    satelliteImage.hidden=true;
+    slide.querySelector('.slide-photo-empty').hidden=false;
+  },{once:true});
   inlineEditor.decorate();
   refreshIcons();
   fitSlide();
@@ -165,6 +171,9 @@ async function useImage(key, file){
   renderSlide();
   markDirty();
 }
+function syncSatelliteMap(){
+  if (!data.photo || isSatelliteMapUrl(data.photo) || isSampleSatelliteImage(data.photo)) data.photo=satelliteMapUrl(data);
+}
 async function takePicture(key,button){
   button.disabled=true;
   try{
@@ -217,6 +226,7 @@ async function selectProperty(id){
     const result=await loadProperty(id);
     currentRecord=result.record;
     Object.assign(data,result.data);
+    syncSatelliteMap();
     restoreExtras(id);
     renderForm();renderSlide();
     select.value=String(id);
@@ -249,8 +259,11 @@ async function setCoordinatesFrom(source,button){
     }
     data.lat=String(latitude);
     data.lng=String(longitude);
+    data.mapUrl=coordinateMapHref(data);
+    syncSatelliteMap();
     document.querySelector('[data-field="lat"]').value=data.lat;
     document.querySelector('[data-field="lng"]').value=data.lng;
+    document.querySelector('[data-field="mapUrl"]').value=data.mapUrl;
     const mapLink=document.querySelector('#map-preview-link');
     if(mapLink)mapLink.href=mapHref(data);
     markDirty();
@@ -272,7 +285,7 @@ document.querySelector('#slide').addEventListener('keydown',event=>{
 document.addEventListener('input',e=>{
   if(!e.target.closest('#form-panel'))return;
   const key=e.target.dataset.field;
-  if(key){if(['footerLeft','footerRight'].includes(key))data.slideLabels[key]=e.target.value;else data[key]=e.target.value;const mapLink=document.querySelector('#map-preview-link');if(mapLink)mapLink.href=mapHref(data);}
+  if(key){if(['footerLeft','footerRight'].includes(key))data.slideLabels[key]=e.target.value;else data[key]=e.target.value;if(key==='lat'||key==='lng'){syncSatelliteMap();if(tab==='media')renderForm();}const mapLink=document.querySelector('#map-preview-link');if(mapLink)mapLink.href=mapHref(data);}
   else if(e.target.dataset.tagIndex!==undefined){data.tags[Number(e.target.dataset.tagIndex)]=e.target.value;}
   else return;
   markDirty();renderSlide();
@@ -292,7 +305,7 @@ document.addEventListener('click',e=>{
   if(btn.dataset.camera){takePicture(btn.dataset.camera,btn);return;}
   if(btn.dataset.tab){changeTab(btn.dataset.tab);return;}
   if(btn.dataset.theme){data.theme=btn.dataset.theme;renderForm();renderSlide();markDirty();return;}
-  if(btn.dataset.reset){data[btn.dataset.reset]=defaults[btn.dataset.reset];renderForm();renderSlide();markDirty();return;}
+  if(btn.dataset.reset){if(btn.dataset.reset==='photo'){data.photo='';syncSatelliteMap();}else data[btn.dataset.reset]=defaults[btn.dataset.reset];renderForm();renderSlide();markDirty();return;}
   if(btn.hasAttribute('data-add-tag')){data.tags.push('กลุ่มเป้าหมายใหม่');data.tagHighlights.push(false);renderForm();renderSlide();markDirty();return;}
   if(btn.dataset.tagDelete!==undefined){if(data.tags.length<=1){toast('ต้องมีอย่างน้อย 1 แท็ก');return;}const i=Number(btn.dataset.tagDelete);data.tags.splice(i,1);data.tagHighlights.splice(i,1);renderForm();renderSlide();markDirty();return;}
   if(btn.dataset.tagHighlight!==undefined){toggleTagHighlight(Number(btn.dataset.tagHighlight));return;}
@@ -311,6 +324,7 @@ document.querySelector('#property-select').addEventListener('change',event=>{if(
 document.querySelector('#new-property').addEventListener('click',()=>{
   currentRecord=null;
   Object.assign(data,blankProperty());
+  syncSatelliteMap();
   document.querySelector('#property-select').value='';
   document.querySelector('#save-status').textContent='ทรัพย์สินใหม่ ยังไม่ได้บันทึก';
   document.querySelector('.sample-note').textContent='ข้อมูลและภาพตัวอย่างสำหรับจัดรูปแบบ • โปรดตรวจสอบก่อนนำเสนอ';
@@ -332,6 +346,7 @@ document.querySelector('#import-legacy').addEventListener('click',()=>{
     restored.cdgId='0';
     currentRecord=null;
     Object.assign(data,restored);
+    syncSatelliteMap();
     document.querySelector('#property-select').value='';
     document.querySelector('#save-status').textContent='นำเข้าฉบับร่างแล้ว กรุณาระบุรหัสทรัพย์สินและบันทึก';
     changeTab('profile');renderSlide();

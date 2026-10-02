@@ -10,6 +10,10 @@ export function mapHref(data) {
       if (['http:', 'https:'].includes(url.protocol)) return url.href;
     } catch {}
   }
+  return coordinateMapHref(data);
+}
+
+export function coordinateMapHref(data) {
   return `https://www.google.com/maps?q=${encodeURIComponent(data.lat + ',' + data.lng)}`;
 }
 
@@ -33,8 +37,9 @@ export function slideMarkup(data, fields, icon, logo) {
     <div class="slide-body">
       <div class="visual-column">
         <div class="property-photo">
-          <img src="${esc(data.photo)}" alt="ภาพแผนที่หรือภาพหลักของทรัพย์สิน" style="object-fit:${safeFit(data.photoFit)};object-position:${safePosition(data.photoPos)}">
-          <span class="map-badge">${icon('map')} แผนที่ตั้ง (Satellite View)</span>
+          ${data.photo?`<img class="satellite-image" src="${esc(data.photo)}" alt="ภาพแผนที่หรือภาพหลักของทรัพย์สิน" style="object-fit:${safeFit(data.photoFit)};object-position:${safePosition(data.photoPos)}">`:''}
+          <div class="photo-empty slide-photo-empty" ${data.photo?'hidden':''}>ไม่มีภาพแผนที่<br><small>เพิ่มภาพได้ในแท็บรูปและสื่อ</small></div>
+          <span class="map-badge">${icon('map')} ${data.photo?'แผนที่ตั้ง':'ภาพหลักของทรัพย์สิน'}</span>
           <div class="dimension-overlay ${data.showDimensions ? '' : 'hidden'}" aria-hidden="${!data.showDimensions}">
             <span class="dimension-tag top" data-dimension="dimTop">${esc(data.dimTop)}</span>
             <span class="dimension-tag left" data-dimension="dimLeft">${esc(data.dimLeft)}</span>

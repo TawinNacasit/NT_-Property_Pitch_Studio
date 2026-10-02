@@ -3,6 +3,7 @@ dist/
 .vite/
 *.log
 .env*
+!.env.example
 artifacts/
 .agents/
 .claude/
