@@ -5,10 +5,13 @@ import '@fontsource/prompt/latin-600.css';
 import '@fontsource/sarabun/thai-400.css';
 import './style.css';
 import './login.css';
+import { firstLogin } from './property-api.js';
+import { readLoginContext, saveLoginContext, clearLoginContext, validCdgId, setInitialProperty } from './login-context.js';
 
 const root = document.querySelector('#app');
 const base = (import.meta.env.VITE_API_BASE_URL || '/profile-estate').replace(/\/$/, '');
 const sessionKey = 'nt-studio-session';
+const loginContext = readLoginContext();
 let token;
 try { token = sessionStorage.getItem(sessionKey); } catch {}
 
@@ -29,9 +32,13 @@ async function openStudio() {
   const logout = document.createElement('button');
   logout.className = 'logout-button';
   logout.textContent = 'ออกจากระบบ';
-  logout.onclick = () => { try { sessionStorage.removeItem(sessionKey); } catch {} location.replace('/login'); };
+  logout.onclick = () => { try { sessionStorage.removeItem(sessionKey); clearLoginContext(); } catch {} location.replace('/login'); };
   document.querySelector('.header-right').append(logout);
-  if (location.pathname === '/login') history.replaceState(null, '', '/');
+  const url = new URL(location.href);
+  url.searchParams.delete('username');
+  url.searchParams.delete('cdg_id');
+  if (url.pathname === '/login') url.pathname = '/';
+  history.replaceState(null, '', url.pathname + url.search + url.hash);
 }
 
 function renderLogin(message = '') {
@@ -49,6 +56,7 @@ function renderLogin(message = '') {
           <h2 id="login-title">เข้าสู่ระบบ</h2><p class="login-subtitle">เข้าใช้งานพื้นที่จัดทำสไลด์ทรัพย์สินของคุณ</p>
           <form id="login-form">
             <label class="login-label" for="username">ชื่อผู้ใช้</label><input id="username" name="username" autocomplete="username" placeholder="กรอกชื่อผู้ใช้" required autocapitalize="none" spellcheck="false">
+            <label class="login-label area-label" for="cdg_id">รหัสพื้นที่</label><input id="cdg_id" name="cdg_id" inputmode="numeric" pattern="[0-9]+" autocomplete="off" placeholder="กรอกรหัสพื้นที่ เช่น 101" required aria-describedby="area-hint"><p id="area-hint" class="area-hint">รหัสพื้นที่สำหรับดึงข้อมูลทรัพย์สินตั้งต้น</p>
             <div class="password-label"><label class="login-label" for="password">รหัสผ่าน</label><button type="button" class="login-help" id="forgot-password">ลืมรหัสผ่าน?</button></div>
             <div class="password-control"><input id="password" name="password" type="password" autocomplete="current-password" placeholder="กรอกรหัสผ่าน" required><button type="button" id="toggle-password" aria-label="แสดงรหัสผ่าน" aria-pressed="false">แสดง</button></div>
             <p id="login-error" role="alert" hidden></p>
@@ -61,6 +69,8 @@ function renderLogin(message = '') {
       </section>
     </main>`;
   const form = document.querySelector('#login-form');
+  form.elements.username.value = loginContext.username;
+  form.elements.cdg_id.value = loginContext.cdgId;
   const password = document.querySelector('#password');
   const error = document.querySelector('#login-error');
   const submit = document.querySelector('.login-submit');
@@ -79,6 +89,8 @@ function renderLogin(message = '') {
     if (submit.disabled) return;
     const username = form.elements.username.value.trim();
     if (!username) { showError('กรุณากรอกชื่อผู้ใช้'); form.elements.username.focus(); return; }
+    const cdgId = form.elements.cdg_id.value.trim();
+    if (!validCdgId(cdgId)) { showError('กรุณากรอกรหัสพื้นที่เป็นตัวเลขจำนวนเต็ม'); form.elements.cdg_id.focus(); return; }
     error.hidden = true;
     submit.disabled = true;
     submit.textContent = 'กำลังเข้าสู่ระบบ…';
@@ -88,7 +100,10 @@ function renderLogin(message = '') {
       const nextToken = result.data?.token ?? result.token;
       if (typeof nextToken !== 'string' || !nextToken.trim()) throw new Error('ข้อมูลการเข้าสู่ระบบไม่สมบูรณ์ กรุณาติดต่อผู้ดูแลระบบ');
       await request('/auth/me', { headers: { Authorization: `Bearer ${nextToken}` } });
-      try { sessionStorage.setItem(sessionKey, nextToken); } catch { throw new Error('กรุณาอนุญาตการจัดเก็บข้อมูลสำหรับเว็บไซต์นี้ แล้วลองอีกครั้ง'); }
+      submit.textContent = 'กำลังดึงข้อมูลพื้นที่…';
+      const initial = await firstLogin(username, cdgId, nextToken);
+      try { saveLoginContext({ username, cdgId }); sessionStorage.setItem(sessionKey, nextToken); } catch { throw new Error('กรุณาอนุญาตการจัดเก็บข้อมูลสำหรับเว็บไซต์นี้ แล้วลองอีกครั้ง'); }
+      setInitialProperty(initial);
       password.value = '';
       await openStudio();
     } catch (failure) {
@@ -104,8 +119,17 @@ function renderLogin(message = '') {
 async function initialize() {
   if (token) {
     root.innerHTML = '<div class="session-loading" role="status">กำลังตรวจสอบการเข้าสู่ระบบ…</div>';
-    try { await request('/auth/me', { headers: { Authorization: `Bearer ${token}` } }); await openStudio(); }
-    catch { try { sessionStorage.removeItem(sessionKey); } catch {} renderLogin('กรุณาเข้าสู่ระบบอีกครั้งเพื่อเข้าใช้งาน'); }
+    try {
+      await request('/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+      if (loginContext.username || loginContext.cdgId) {
+        if (!loginContext.username || !validCdgId(loginContext.cdgId)) throw new Error('กรุณาตรวจสอบชื่อผู้ใช้และรหัสพื้นที่ที่ส่งมา');
+        const initial = await firstLogin(loginContext.username, loginContext.cdgId, token);
+        saveLoginContext(loginContext);
+        setInitialProperty(initial);
+      }
+      await openStudio();
+    }
+    catch (failure) { try { sessionStorage.removeItem(sessionKey); } catch {} renderLogin(failure.message || 'กรุณาเข้าสู่ระบบอีกครั้งเพื่อเข้าใช้งาน'); }
   } else renderLogin();
 }
 

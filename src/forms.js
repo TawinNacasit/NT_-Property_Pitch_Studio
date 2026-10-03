@@ -4,7 +4,10 @@ import { pointsFormMarkup } from './points-form';
 import { isSatelliteMapUrl } from './map-image';
 
 const icon = name => `<i data-lucide="${name}" aria-hidden="true"></i>`;
-const input = (data, key, label, multi = false) => `<label class="field"><span>${label}</span>${multi ? `<textarea data-field="${key}" rows="3">${esc(data[key] ?? '')}</textarea>` : `<input data-field="${key}" value="${esc(data[key] ?? '')}" ${['lat', 'lng'].includes(key) ? 'inputmode="decimal"' : ''}>`}</label>`;
+const input = (data, key, label, multi = false) => {
+  const apiReadOnly = key === 'propertyCode';
+  return `<label class="field"><span>${label}</span>${multi ? `<textarea data-field="${key}" rows="3">${esc(data[key] ?? '')}</textarea>` : `<input ${apiReadOnly ? 'readonly aria-readonly="true"' : `data-field="${key}"`} value="${esc(data[key] ?? '')}" ${['lat', 'lng'].includes(key) ? 'inputmode="decimal"' : ''}>`}</label>`;
+};
 const select = (data, key, label, options) => `<label class="field"><span>${label}</span><select data-field="${key}">${options.map(([value, text]) => `<option value="${value}" ${data[key] === value ? 'selected' : ''}>${text}</option>`).join('')}</select></label>`;
 const imageChoices = (key, label) => `<div class="image-choices" role="group" aria-label="เพิ่ม${label}"><button type="button" class="image-choice" data-camera="${key}">${icon('camera')} ถ่ายรูป</button><button type="button" class="image-choice" data-select-upload="${key}">${icon('upload')} อัปโหลดรูป</button><input ${key === 'photo' ? 'id="photo-upload"' : ''} data-upload="${key}" type="file" accept="image/jpeg,image/png,image/webp" aria-label="เลือกไฟล์${label}" hidden></div><p class="image-help">JPG, PNG หรือ WebP ไม่เกิน 5 MB</p>`;
 const upload = (key, label, image, fit, caption = '') => `<div class="media-card"><h4>${label}</h4>${image?`<img class="upload-preview" src="${esc(image)}" alt="${label}">`:'<div class="upload-empty">ยังไม่มีภาพ</div>'}${imageChoices(key, label)}${fit ? select({[key + 'Fit']: fit}, key + 'Fit', 'การจัดภาพ',[['cover','เต็มกรอบ'],['contain','เห็นทั้งภาพ']]) : ''}${caption ? input({[caption.key]:caption.value},caption.key,'คำบรรยายภาพ') : ''}<button type="button" class="text-button" data-reset="${key}">${key==='photo'?'ใช้ภาพจาก Google Maps':'ใช้ภาพตัวอย่าง'}</button></div>`;

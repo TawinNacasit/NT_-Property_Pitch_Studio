@@ -18,6 +18,7 @@ import { slideMarkup, mapHref, coordinateMapHref } from './slide';
 import { satelliteMapUrl, isSatelliteMapUrl, isSampleSatelliteImage } from './map-image';
 import { exportEditablePptx } from './export-pptx';
 import { listProperties, loadProperty, saveProperty } from './property-api';
+import { getInitialProperty } from './login-context';
 import './style.css';
 import './studio-theme.css';
 import './reference-slide.css';
@@ -388,12 +389,23 @@ const inlineEditor = createInlineEditor({
   markDirty: () => { document.querySelector('#save-status').textContent = 'ยังไม่ได้บันทึก'; },
 });
 renderForm();renderSlide();document.fonts.ready.then(fitSlide);
-refreshPropertyList().then(properties=>{
+const initialProperty = getInitialProperty();
+if(initialProperty){
+  currentRecord=initialProperty.record;
+  Object.assign(data,initialProperty.data);
+  syncSatelliteMap();
+  if(currentRecord.id)restoreExtras(currentRecord.id);
+  renderForm();renderSlide();
+  document.querySelector('.sample-note').textContent='ข้อมูลทรัพย์สินจากระบบ • โปรดตรวจสอบก่อนนำเสนอ';
+  document.querySelector('#save-status').textContent=currentRecord.id?'ข้อมูลจากระบบพร้อมแก้ไข':'ข้อมูลตั้งต้นพร้อมแก้ไข • ยังไม่ได้บันทึก';
+}
+refreshPropertyList(initialProperty?.record.id).then(properties=>{
+  if(initialProperty)return;
   if(properties.length)selectProperty(properties[0].id);
   else document.querySelector('#new-property').click();
 }).catch(error=>{
   document.querySelector('#property-select').innerHTML='<option value="">โหลดรายการไม่สำเร็จ</option>';
-  document.querySelector('#save-status').textContent='เชื่อมต่อข้อมูลไม่สำเร็จ';
+  if(!initialProperty)document.querySelector('#save-status').textContent='เชื่อมต่อข้อมูลไม่สำเร็จ';
   toast(error?.message||'เชื่อมต่อข้อมูลไม่สำเร็จ');
 });
 

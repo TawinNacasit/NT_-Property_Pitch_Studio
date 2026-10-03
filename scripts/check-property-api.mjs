@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { defaults } from '../src/model.js';
-import { fromPropertyRecord, toPropertyPayload, saveProperty } from '../src/property-api.js';
+import { fromPropertyRecord, toPropertyPayload, saveProperty, firstLogin } from '../src/property-api.js';
 
 const record = {
   id: 7, cdg_id: 101, property_code: 'NT-PKN-001', title: 'ชุมสายพระโขนง',
@@ -41,4 +41,18 @@ newData.propertyCode = 'NEW-001';
 await saveProperty(newData, null);
 assert.deepEqual(requests.slice(0, 2).map(({ url, method }) => [url.split('/profile-estate')[1], method]), [['/properties/', 'POST'], ['/properties/7', 'GET']]);
 assert(requests.some(item => item.url.endsWith('/slide-configs/14') && item.method === 'PATCH'), 'New property must update its automatically created slide config');
-console.log('PASS: database.md round trip and API save mapping');
+const seed = { ...record, id: null, cdg_id: 7313, property_code: 'NT-7313', specs: { ...record.specs, id: null, property_id: null }, slide_config: null, tags: [], points: [], media: [] };
+globalThis.fetch = async (url, options) => {
+  assert.equal(url, '/profile-estate/first-login');
+  assert.equal(options.headers.Authorization, 'Bearer redirect-token');
+  assert.deepEqual(JSON.parse(options.body), { username: 'admin', user: 'admin', cdg_id: '07313' });
+  return { ok: true, headers: { get: () => 'application/json' }, json: async () => ({ success: true, data: seed }) };
+};
+const initial = await firstLogin('admin', '07313', 'redirect-token');
+assert.equal(initial.record.id, null);
+assert.equal(initial.data.propertyId, null);
+assert.equal(initial.data.propertyCode, 'NT-7313');
+assert.equal(initial.data.area, record.specs.land_area);
+seed.cdg_id = 101;
+await assert.rejects(firstLogin('admin', '07313', 'redirect-token'), /ข้อมูลตั้งต้นของรหัสพื้นที่ไม่ถูกต้อง/);
+console.log('PASS: database.md round trip, API save mapping and first-login seed/mismatched-area handling');

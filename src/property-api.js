@@ -9,8 +9,8 @@ const specFields = {
 };
 const themes = ['corporate-yellow', 'modern-navy', 'emerald-green', 'luxury-red'];
 
-async function request(path, method = 'GET', body) {
-  const token = sessionStorage.getItem(tokenKey);
+async function request(path, method = 'GET', body, suppliedToken) {
+  const token = suppliedToken || sessionStorage.getItem(tokenKey);
   if (!token) throw new Error('กรุณาเข้าสู่ระบบอีกครั้ง');
   const response = await fetch(`${base}${path}`, {
     method, signal: AbortSignal.timeout(20000),
@@ -37,9 +37,17 @@ export async function loadProperty(id) {
   return { record: result.data, data: fromPropertyRecord(result.data) };
 }
 
+export async function firstLogin(username, cdgId, token) {
+  const result = await request('/first-login', 'POST', { username, user: username, cdg_id: cdgId }, token);
+  if (!result.data || typeof result.data !== 'object' || Array.isArray(result.data) || result.data.cdg_id == null || Number(result.data.cdg_id) !== Number(cdgId)) {
+    throw new Error('ข้อมูลตั้งต้นของรหัสพื้นที่ไม่ถูกต้อง กรุณาติดต่อผู้ดูแลระบบ');
+  }
+  return { record: result.data, data: fromPropertyRecord(result.data) };
+}
+
 export function fromPropertyRecord(record) {
   const data = structuredClone(defaults);
-  data.propertyId = Number(record.id);
+  data.propertyId = record.id == null ? null : Number(record.id);
   data.cdgId = String(record.cdg_id ?? 0);
   data.propertyCode = record.property_code ?? '';
   for (const key of ['title', 'category']) data[key] = record[key] ?? '';

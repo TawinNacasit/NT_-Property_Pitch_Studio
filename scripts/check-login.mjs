@@ -9,6 +9,21 @@ try {
   page.on('pageerror', error => errors.push(error.message));
   let mode = 'invalid';
   let requests = 0;
+  let firstLoginRequests = 0;
+  const property = { id: 7, cdg_id: 101, property_code: 'NT-101', title: 'พื้นที่จาก first-login', specs: { land_area: '2 ไร่' } };
+  await page.route('**/profile-estate/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/properties/')) return route.fulfill({ json: { success: true, data: [property] } });
+    return route.fulfill({ status: 404, json: { success: false } });
+  });
+  await page.route('**/profile-estate/first-login', route => {
+    firstLoginRequests++;
+    assert.equal(route.request().headers().authorization, 'Bearer test-token');
+    const body = route.request().postDataJSON();
+    assert.deepEqual(body, { username: 'tester', user: 'tester', cdg_id: mode === 'seed' ? '7313' : '101' });
+    if (mode === 'area-error') return route.fulfill({ status: 500, json: { success: false, message: 'ดึงข้อมูลตั้งต้นไม่สำเร็จ' } });
+    return route.fulfill({ json: { success: true, data: mode === 'seed' ? { ...property, id: null, cdg_id: 7313, property_code: 'NT-7313', title: 'ข้อมูลตั้งต้น 7313' } : property } });
+  });
   await page.route('**/profile-estate/auth/login', async route => {
     requests++;
     assert.deepEqual(route.request().postDataJSON(), { username: 'tester', password: 'test-password' });
@@ -33,6 +48,12 @@ try {
   assert.equal(requests, 0);
   await page.locator('#username').fill(' tester ');
   await page.locator('#password').fill('test-password');
+  await page.locator('.login-submit').click();
+  assert.equal(requests, 0, 'Area is required before authentication');
+  await page.locator('#cdg_id').fill('invalid');
+  await page.locator('.login-submit').click();
+  assert.equal(requests, 0, 'Invalid area must not submit');
+  await page.locator('#cdg_id').fill('101');
   await page.locator('#toggle-password').click();
   assert.equal(await page.locator('#password').getAttribute('type'), 'text');
   await page.locator('#toggle-password').click();
@@ -46,17 +67,27 @@ try {
     assert(await page.locator('#login-form').isVisible());
     assert.equal(await page.evaluate(() => sessionStorage.getItem('nt-studio-session')), null);
   }
+  assert.equal(firstLoginRequests, 0, 'No property initialization before verified authentication');
+  mode = 'area-error';
+  await page.locator('.login-submit').click();
+  await page.getByText('ดึงข้อมูลตั้งต้นไม่สำเร็จ', { exact: true }).waitFor();
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('nt-studio-session')), null);
+  assert.equal(await page.locator('.logout-button').count(), 0);
   mode = 'success';
   await page.locator('.login-submit').click();
   await page.locator('.logout-button').waitFor();
+  assert.equal(await page.locator('[data-field=title]').inputValue(), property.title);
+  assert.equal(await page.locator('[data-field=area]').inputValue(), '2 ไร่');
   assert.equal(await page.evaluate(() => sessionStorage.getItem('nt-studio-session')), 'test-token');
   assert.equal(await page.evaluate(() => JSON.stringify(localStorage).includes('test-password')), false);
   await page.reload();
   await page.locator('.logout-button').waitFor();
+  assert.equal(await page.locator('[data-field=title]').inputValue(), property.title);
   mode = 'expired';
   await page.reload();
   await page.locator('#login-title').waitFor();
   assert.equal(await page.evaluate(() => sessionStorage.getItem('nt-studio-session')), null);
+  assert.equal(await page.locator('#cdg_id').inputValue(), '101');
   mode = 'success';
   await page.locator('#username').fill('tester');
   await page.locator('#password').fill('test-password');
@@ -64,6 +95,26 @@ try {
   await page.locator('.logout-button').click();
   await page.locator('#login-title').waitFor();
   assert.equal(await page.evaluate(() => sessionStorage.getItem('nt-studio-session')), null);
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('nt-studio-login-context')), null);
+  mode = 'seed';
+  await page.goto(`${process.env.LOGIN_TEST_URL || 'http://127.0.0.1:5173'}/login?username=tester&cdg_id=7313`);
+  assert.equal(await page.locator('#username').inputValue(), 'tester');
+  assert.equal(await page.locator('#cdg_id').inputValue(), '7313');
+  await page.locator('#password').fill('test-password');
+  await page.locator('.login-submit').click();
+  await page.locator('.logout-button').waitFor();
+  assert.equal(await page.locator('[data-field=title]').inputValue(), 'ข้อมูลตั้งต้น 7313');
+  assert.equal(await page.getByLabel('รหัสทรัพย์สิน', { exact: true }).inputValue(), 'NT-7313');
+  assert.match(await page.locator('#save-status').textContent(), /ยังไม่ได้บันทึก/);
+  assert.equal(new URL(page.url()).searchParams.has('username'), false);
+  await page.waitForFunction(() => document.querySelector('#property-select')?.options.length > 1);
+  assert.equal(await page.locator('[data-field=title]').inputValue(), 'ข้อมูลตั้งต้น 7313', 'List must not overwrite seed');
+  mode = 'success';
+  const beforeRedirect = requests;
+  await page.goto(`${process.env.LOGIN_TEST_URL || 'http://127.0.0.1:5173'}/?username=tester&cdg_id=101`);
+  await page.locator('.logout-button').waitFor();
+  assert.equal(requests, beforeRedirect, 'Existing verified session opens redirect without password login');
+  assert.equal(await page.locator('[data-field=title]').inputValue(), property.title);
   assert.deepEqual(errors, []);
-  console.log('PASS: login validation, errors, password toggle, verified session, reload, expiry, logout and 5 viewport sizes. API mocked.');
+  console.log('PASS: login/area validation, first-login failure, existing/seed data, redirect prefill, authenticated redirect, reload, expiry, logout and 5 viewport sizes. API mocked.');
 } finally { await browser.close(); }

@@ -14,7 +14,9 @@ To load a satellite image on the slide from its GPS coordinates, enable Maps Sta
 
 ## Login
 
-The entry page (also available at `/login`) requires username and password. Successful login verifies the JWT with `/auth/me` before opening the studio. Logout clears the tab session. Passwords are never persisted; the token is kept in sessionStorage and verified again on reload. API authorization must also be enforced by the backend.
+The entry page (also available at `/login`) requires username, password and **รหัสพื้นที่** (`cdg_id`). Successful login verifies the JWT with `/auth/me`, then calls `POST /profile-estate/first-login` with `{ username, user: username, cdg_id }` and a Bearer token. The returned full property record populates the editor and slide. Existing records retain their ID for updates; seed records with `id: null` remain unsaved until the user saves. Initialization failures stay on the login form with an error.
+
+Redirects from ntestate can use `/login?username=admin&cdg_id=7313` (also supported at `/`). These values prefill the form. An existing tab session is verified before loading the specified area; otherwise the user enters their password. Username and area alone do not authenticate a user. JWT/SSO transfer from ntestate is not yet specified. After successful initialization, the redirect parameters are removed from the URL and the username/area context is kept in sessionStorage for reload. Logout clears the context and token. Passwords are never persisted. API authorization and access to the requested username/area must also be enforced by the backend.
 
 During local development, browser requests use the same-origin `/profile-estate` path. Vite proxies that path to `https://ntestate.ntplc.co.th` by default. Set `API_PROXY_TARGET` in `.env.local` and restart Vite to use a different backend. Production builds use `https://ntestate.ntplc.co.th/profile-estate` directly through `.env.production`; the API must allow the deployed frontend origin through CORS. No backend or demo login is included in this UI repository.
 
